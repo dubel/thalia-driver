@@ -174,7 +174,7 @@ function recodePaint(root: Object3D, config: CarConfig): void {
   })
 }
 
-const CABIN_GRAY = 0xc9cbce
+const CABIN_GRAY = 0x3a3c3f
 
 function recodeCabinTrim(root: Object3D): void {
   const box = new Box3()
@@ -182,22 +182,28 @@ function recodeCabinTrim(root: Object3D): void {
     const mesh = child as Mesh
     if (!mesh.isMesh) return
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-    const paintable = mats.some(
-      (mat) =>
-        mat instanceof MeshStandardMaterial &&
-        (/Interno/i.test(mat.name) || /Plastico/i.test(mat.name)),
+    const hasInterno = mats.some((mat) => mat instanceof MeshStandardMaterial && /Interno/i.test(mat.name))
+    const hasPlastico = mats.some(
+      (mat) => mat instanceof MeshStandardMaterial && /Plastico/i.test(mat.name),
     )
-    if (!paintable) return
+    if (!hasInterno && !hasPlastico) return
     box.setFromObject(mesh)
-    if (!isCabinTrim(box)) return
+    const sx = box.max.x - box.min.x
+    const sy = box.max.y - box.min.y
+    const sz = box.max.z - box.min.z
+    if (hasInterno && isHeadliner(box, sx, sy, sz)) return
+    if (hasPlastico && !hasInterno && !isDoorCard(box)) return
     const next = mats.map((mat) => {
       if (!(mat instanceof MeshStandardMaterial)) return mat
-      if (!/Interno/i.test(mat.name) && !/Plastico/i.test(mat.name)) return mat
+      const interno = /Interno/i.test(mat.name)
+      const plastico = /Plastico/i.test(mat.name)
+      if (!interno && !plastico) return mat
+      if (plastico && !interno && !isDoorCard(box)) return mat
       const clone = mat.clone()
       clone.color.setHex(CABIN_GRAY)
-      clone.metalness = 0.08
-      clone.roughness = 0.58
-      clone.envMapIntensity = 0.55
+      clone.metalness = 0.04
+      clone.roughness = 0.72
+      clone.envMapIntensity = 0.22
       clone.needsUpdate = true
       return clone
     })
@@ -205,34 +211,13 @@ function recodeCabinTrim(root: Object3D): void {
   })
 }
 
-function isCabinTrim(box: Box3): boolean {
+function isDoorCard(box: Box3): boolean {
   const sx = box.max.x - box.min.x
   const sy = box.max.y - box.min.y
   const sz = box.max.z - box.min.z
   const cx = (box.min.x + box.max.x) * 0.5
   const cy = (box.min.y + box.max.y) * 0.5
-  const cz = (box.min.z + box.max.z) * 0.5
-  if (isHeadliner(box, sx, sy, sz)) return false
-  if (box.max.y < 0.38) return false
-  const dash =
-    cy > 0.48 &&
-    cy < 1.05 &&
-    box.max.y < 1.1 &&
-    cz > 0.18 &&
-    cz < 1.15 &&
-    sx > 0.7 &&
-    sy < 0.62 &&
-    Math.abs(cx) < 0.55
-  const door =
-    Math.abs(cx) > 0.42 && cy > 0.32 && cy < 1.12 && sx < 0.24 && sy > 0.22 && sz > 0.45 && box.max.y < 1.22
-  const pillar =
-    Math.abs(cx) > 0.28 &&
-    box.max.y > 1.05 &&
-    box.min.y < 0.95 &&
-    sy > 0.42 &&
-    sx < 0.28 &&
-    sz < 0.42
-  return dash || door || pillar
+  return Math.abs(cx) > 0.42 && cy > 0.32 && cy < 1.12 && sx < 0.24 && sy > 0.22 && sz > 0.45
 }
 
 function isHeadliner(box: Box3, sx: number, sy: number, sz: number): boolean {
