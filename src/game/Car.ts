@@ -300,7 +300,7 @@ export class Car {
       wheel.steer.rotation.y = wheel.front ? this.steerAngle : this.steerAngle * 0.08
     }
     if (this.steering) {
-      this.steering.pivot.rotation[this.steering.axis] = this.steerAngle * 8.4
+      this.steering.pivot.rotation[this.steering.axis] = -this.steerAngle * 8.4
     }
   }
 

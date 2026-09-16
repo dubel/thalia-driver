@@ -19,10 +19,10 @@ Live: [https://dubel.dev/thalia-driver/](https://dubel.dev/thalia-driver/)
 | Input | Action |
 | --- | --- |
 | WASD / arrows | drive |
-| mouse L/R | chase: hull yaw · cockpit: look around |
+| mouse | look around (chase + cockpit); springs back when you stop |
 | Space | handbrake |
 | V | chase / cockpit |
-| F | cockpit: toggle look-hold (off = spring back) |
+| F | look-hold (off = spring back). Chase: free orbit around the car |
 | L | headlights / taillights |
 | Shift | horn |
 | R | reset to spawn |

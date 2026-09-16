@@ -32,3 +32,4 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 - UI: verify by clicking, not only a screenshot.
 - `?describe=true` when debugging the rig. `?fps=true` for frame time.
 - After a camera or hull change, drive a full lap of the curb (all four sides).
+- Chase mouse looks; it does not yaw the hull. `F` in chase orbits the car.

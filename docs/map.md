@@ -19,12 +19,12 @@ Playable square: **±475 m** (`ARENA_HALF`). Surface is 8× Karaluch’s 336 m l
 
 ## Roads
 
-City grid, centerlines every **80 m** (`ROAD_STEP`). Pieces come from `assets/old_street_pack.glb`:
+Orthogonal city grid, centerlines every **80 m** (`ROAD_STEP`). Only axis-aligned pack tiles — **no curves**:
 
-- **`Cube.002`** at every crossing — 4-way with curved corner sidewalks.
-- **`Cube`** between crossings — sidewalk frames, overlapped into the plus so the curve meets the straight.
-- Textured asphalt ribbon fills the `Cube` carriageway and **stops short** of `Cube.002`’s inner curve so it does not hit the far curb.
+- **`Cube.001`** at every crossing — sidewalk frame with four square corner pads (scaled to a 10.06 m square so it matches the straight).
+- **`Cube`** between crossings, NS and EW (yaw 0 / 90°) — two parallel sidewalks, same 10.06 m width.
+- Textured asphalt fills the 6 m inner hole only.
 
-Street lamps (`assets/street_lamp.glb`) line the marked arterials (`x` or `z` in {0, ±160, ±320}). At dusk they go emissive; six cheap point lights hop to the nearest poles (brighter / longer reach than the first pass).
+Street lamps (`assets/street_lamp.glb`) line the marked arterials (`x` or `z` in {0, ±160, ±320}). At dusk they go emissive; six cheap point lights hop to the nearest poles.
 
 A low curb still marks the rim; driving past it is blocked.

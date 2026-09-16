@@ -27,16 +27,16 @@ main.ts
 - `stripJunk` — cameras/lights from the GLB.
 - `normalizeModel` — scale to `targetLength` (**4.26 m**), **set Y so the underside is at 0**. Afterwards only `position.y += …`, never `position.set(x, y, z)` (that wipes Y).
 - If the mesh is longer on X than Z, yaw the visual −90° so hull forward is +Z.
-- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel mesh is found by bbox (cabin plastic near `cockpitEye`) and yaws with `steerAngle`.
+- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel is `Mesh15_Carro_Plastico_0` (not the radio/AC stack) and rotates opposite `steerAngle`.
 - `L` toggles head / tail emissive plus two SpotLights per lamp that throw a cone along +Z.
 
-Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse yaw is the same as the tank hull. `Shift` honks. Diesel loop plays while moving.
+Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse never yaws the hull — chase and cockpit both look with the mouse. `Shift` honks. Diesel loop plays while moving.
 
 Weather SFX (rain, thunder, birds) live in `audio.ts`, copied from Karaluch. `?fps=true` / `?fps=false` shows or hides the overlay counter.
 
 ## Camera
 
-`FollowCamera` chase copies Karaluch lag: snappy while the hull is turning, tighter when straight. Arm shortens if a hill or curb is in the way. `V` toggles cockpit (driver-eye in `config.cockpitEye`); mouse look springs back unless `F` has toggled look-hold. Day cycle, rain, and storm live in `atmosphere.ts` (same URL flags as Karaluch: `hour`, `weather`, `mist`, `fixed`, `pauseday`).
+`FollowCamera` chase copies Karaluch lag: snappy while the hull is turning, tighter when straight. Arm shortens if a hill or curb is in the way. Mouse looks around the car (springs back); `F` holds the look — in chase that is a free orbit around the hull. `V` toggles cockpit (driver-eye in `config.cockpitEye`). Day cycle, rain, and storm live in `atmosphere.ts` (same URL flags as Karaluch: `hour`, `weather`, `mist`, `fixed`, `pauseday`).
 
 ## Build
 

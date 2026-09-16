@@ -79,7 +79,8 @@ export class FollowCamera {
 
   update(car: Car, dt: number, blockers: ObstacleSet, mouseDx: number, mouseDy: number): void {
     if (!this.ready) this.reset(car)
-    if (this.mode === 'cockpit') this.updateCockpit(car, dt, mouseDx, mouseDy)
+    this.applyMouseLook(dt, mouseDx, mouseDy)
+    if (this.mode === 'cockpit') this.updateCockpit(car)
     else this.updateChase(car, dt, blockers)
   }
 
@@ -94,13 +95,19 @@ export class FollowCamera {
     this.camera.updateProjectionMatrix()
   }
 
-  private updateCockpit(car: Car, dt: number, mouseDx: number, mouseDy: number): void {
+  private applyMouseLook(dt: number, mouseDx: number, mouseDy: number): void {
     const moving = Math.abs(mouseDx) + Math.abs(mouseDy) > 0.35
+    const freeOrbit = this.lookHold && this.mode === 'chase'
     if (moving) {
       this.lookYaw -= mouseDx * 0.0024
       this.lookPitch -= mouseDy * 0.0021
-      this.lookYaw = Math.max(-LOOK_YAW_LIMIT, Math.min(LOOK_YAW_LIMIT, this.lookYaw))
-      this.lookPitch = Math.max(LOOK_PITCH_MIN, Math.min(LOOK_PITCH_MAX, this.lookPitch))
+      if (freeOrbit) {
+        this.lookYaw = wrapPi(this.lookYaw)
+        this.lookPitch = Math.max(-0.28, Math.min(1.22, this.lookPitch))
+      } else {
+        this.lookYaw = Math.max(-LOOK_YAW_LIMIT, Math.min(LOOK_YAW_LIMIT, this.lookYaw))
+        this.lookPitch = Math.max(LOOK_PITCH_MIN, Math.min(LOOK_PITCH_MAX, this.lookPitch))
+      }
     } else if (!this.lookHold) {
       const k = 1 - Math.exp(-LOOK_RETURN * dt)
       this.lookYaw += (0 - this.lookYaw) * k
@@ -108,7 +115,9 @@ export class FollowCamera {
       if (Math.abs(this.lookYaw) < 1e-4) this.lookYaw = 0
       if (Math.abs(this.lookPitch) < 1e-4) this.lookPitch = 0
     }
+  }
 
+  private updateCockpit(car: Car): void {
     const eye = car.config.cockpitEye
     const yaw = this.lookYaw
     const pitch = car.config.cockpitPitch + this.lookPitch
@@ -139,15 +148,18 @@ export class FollowCamera {
       this.yaw += error * (1 - Math.exp(-follow * dt))
     }
 
-    const sin = Math.sin(this.yaw)
-    const cos = Math.cos(this.yaw)
+    const orbitYaw = this.yaw + this.lookYaw
+    const sin = Math.sin(orbitYaw)
+    const cos = Math.cos(orbitYaw)
+    const pitch = this.lookPitch
     _pivot.set(car.position.x, car.position.y + 1.15, car.position.z)
 
     const back = car.config.cameraDistance
+    const horiz = Math.cos(pitch) * back
     _desired.set(
-      car.position.x - sin * back,
-      car.position.y + car.config.cameraHeight,
-      car.position.z - cos * back,
+      car.position.x - sin * horiz,
+      car.position.y + car.config.cameraHeight + Math.sin(pitch) * back,
+      car.position.z - cos * horiz,
     )
 
     _dir.subVectors(_desired, _pivot)
@@ -168,13 +180,18 @@ export class FollowCamera {
       this.camera.position.copy(_desired)
     }
 
-    const lookDist = LOOK_AHEAD * (0.38 + 0.62 * (arm / Math.max(maxArm, 1e-4)))
-    _look.set(
-      car.position.x + sin * lookDist,
-      terrainHeight(car.position.x + sin * lookDist, car.position.z + cos * lookDist) + 1.05,
-      car.position.z + cos * lookDist,
-    )
-    this.camera.lookAt(_look)
+    const orbiting = Math.abs(this.lookYaw) + Math.abs(this.lookPitch) > 0.04
+    if (orbiting) {
+      this.camera.lookAt(_pivot)
+    } else {
+      const lookDist = LOOK_AHEAD * (0.38 + 0.62 * (arm / Math.max(maxArm, 1e-4)))
+      _look.set(
+        car.position.x + sin * lookDist,
+        terrainHeight(car.position.x + sin * lookDist, car.position.z + cos * lookDist) + 1.05,
+        car.position.z + cos * lookDist,
+      )
+      this.camera.lookAt(_look)
+    }
     this.shakeAmp *= Math.exp(-5.8 * dt)
     if (this.shakeAmp > 0.004) {
       this.shakePhase += dt * 36

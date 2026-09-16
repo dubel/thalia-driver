@@ -277,40 +277,14 @@ function collectLightMats(root: Object3D): LightMats {
 
 function findSteeringWheel(visual: Object3D, eye: { x: number; y: number; z: number }): SteeringWheel | null {
   const box = new Box3()
-  let best: Mesh | null = null
-  let bestScore = Infinity
+  let named: Mesh | undefined
   visual.traverse((child) => {
     const mesh = child as Mesh
     if (!mesh.isMesh) return
-    if (/roda|pneu|vidro|tire|wheel/i.test(mesh.name)) return
-    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-    const cabin = mats.some(
-      (mat) => mat instanceof MeshStandardMaterial && /Plastico|Interno/i.test(mat.name),
-    )
-    if (!cabin) return
-    box.setFromObject(mesh)
-    visual.worldToLocal(_center.copy(box.getCenter(new Vector3())))
-    box.getSize(_size)
-    const cx = _center.x
-    const cy = _center.y
-    const cz = _center.z
-    const dims = [_size.x, _size.y, _size.z].sort((a, b) => a - b)
-    const thin = dims[0]
-    const mid = dims[1]
-    const wide = dims[2]
-    if (wide < 0.22 || wide > 0.55 || thin > 0.22 || mid < 0.18) return
-    if (Math.abs(cx - eye.x) > 0.42) return
-    if (cy < 0.62 || cy > 1.32) return
-    if (cz < 0.08 || cz > 0.92) return
-    const score =
-      (cx - eye.x) ** 2 + (cy - (eye.y - 0.22)) ** 2 + (cz - 0.42) ** 2 + thin * 0.4
-    if (score < bestScore) {
-      bestScore = score
-      best = mesh
-    }
+    if (mesh.name === 'Mesh15_Carro_Plastico_0' || mesh.name === 'Mesh15') named = mesh
   })
-  if (!best) return null
-  const wheel: Mesh = best
+  const wheel = named ?? pickSteeringMesh(visual, eye)
+  if (!wheel) return null
   box.setFromObject(wheel)
   visual.worldToLocal(_world.copy(box.getCenter(new Vector3())))
   box.getSize(_size)
@@ -323,4 +297,39 @@ function findSteeringWheel(visual: Object3D, eye: { x: number; y: number; z: num
     _size.z <= _size.x && _size.z <= _size.y ? 'z' : _size.x <= _size.y ? 'x' : 'y'
   if (DESCRIBE) console.info('Steering wheel', wheel.name, axis)
   return { pivot, axis }
+}
+
+function pickSteeringMesh(visual: Object3D, eye: { x: number; y: number; z: number }): Mesh | null {
+  const box = new Box3()
+  let best: Mesh | null = null
+  let bestScore = Infinity
+  visual.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh) return
+    if (/roda|pneu|vidro|tire/i.test(mesh.name)) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const cabin = mats.some(
+      (mat) => mat instanceof MeshStandardMaterial && /Plastico/i.test(mat.name),
+    )
+    if (!cabin) return
+    box.setFromObject(mesh)
+    visual.worldToLocal(_center.copy(box.getCenter(new Vector3())))
+    box.getSize(_size)
+    const cx = _center.x
+    const cy = _center.y
+    const cz = _center.z
+    const dims = [_size.x, _size.y, _size.z].sort((a, b) => a - b)
+    const wide = dims[2]
+    if (wide < 0.32 || wide > 0.55) return
+    if (Math.abs(cx - eye.x) > 0.14) return
+    if (Math.sign(cx) !== Math.sign(eye.x) && Math.abs(cx) < 0.22) return
+    if (cy < 0.7 || cy > 1.15) return
+    if (cz < 0.28 || cz > 0.72) return
+    const score = (cx - eye.x) ** 2 + (cy - 0.87) ** 2 + (cz - 0.54) ** 2
+    if (score < bestScore) {
+      bestScore = score
+      best = mesh
+    }
+  })
+  return best
 }

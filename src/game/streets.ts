@@ -36,13 +36,12 @@ const LAMP_STEP = 28
 const LAMP_SIDE = 6.15
 const GLOW_LIGHTS = 6
 const LAMP_DISTANCE = 58
-const ASPHALT_W = 5.7
+/** Inner hole of Cube / Cube.001 is 6 m. Stay inside the sidewalks. */
+const ASPHALT_W = 5.92
 const ASPHALT_H = 0.12
 const PAVEMENT = 0.48
-/** Pull Cube sidewalks into the Cube.002 plus so the curve meets the straight. */
-const SIDEWALK_OVERLAP = 1.7
-/** Slight overlap onto Cube.002 asphalt; keep the ribbon out of the inner curve. */
-const ASPHALT_STOP = -0.2
+const SIDEWALK_OVERLAP = 0.12
+const ASPHALT_STOP = -0.18
 
 type TilePart = {
   geo: BufferGeometry
@@ -57,7 +56,7 @@ type Tile = {
   sizeY: number
 }
 
-type Pose = { x: number; z: number; y?: number; yaw: number; sy?: number }
+type Pose = { x: number; z: number; y?: number; yaw: number; sx?: number; sy?: number; sz?: number }
 
 type StreetWorld = {
   materials: MeshStandardMaterial[]
@@ -80,8 +79,10 @@ export function addStreetCity(
   lampRoot.updateMatrixWorld(true)
 
   const tiles = gatherTiles(pack)
-  const arterial = mustTile(tiles, 'Cube')
-  const cross = mustTile(tiles, 'Cube.002')
+  const straight = mustTile(tiles, 'Cube')
+  const cross = mustTile(tiles, 'Cube.001')
+  const crossSz = straight.sizeX / cross.sizeZ
+  const crossHalf = straight.sizeX * 0.5
 
   const byName = new Map<string, Pose[]>()
   const add = (tile: Tile, pose: Pose): void => {
@@ -97,18 +98,25 @@ export function addStreetCity(
 
   for (const z of lines) {
     for (const x of lines) {
-      add(cross, { x, z, yaw: 0 })
+      add(cross, { x, z, yaw: 0, sz: crossSz })
+      asphalt.push({
+        x,
+        z,
+        y: terrainHeight(x, z) + PAVEMENT - ASPHALT_H * 0.5,
+        yaw: 0,
+        sy: ASPHALT_W,
+      })
     }
   }
 
   for (const z of lines) {
-    fillSpan(lines, z, true, arterial, cross, add, asphalt)
+    fillSpan(lines, z, true, straight, crossHalf, add, asphalt)
   }
   for (const x of lines) {
-    fillSpan(lines, x, false, arterial, cross, add, asphalt)
+    fillSpan(lines, x, false, straight, crossHalf, add, asphalt)
   }
 
-  const asphaltMat = addAsphalt(scene, asphalt, arterial.parts[0]?.material)
+  const asphaltMat = addAsphalt(scene, asphalt, straight.parts[0]?.material)
 
   const materials: MeshStandardMaterial[] = asphaltMat ? [asphaltMat] : []
   for (const tile of uniqueTiles(tiles)) {
@@ -124,7 +132,7 @@ export function addStreetCity(
         const p = poses[i]
         _dummy.position.set(p.x, p.y ?? 0, p.z)
         _dummy.rotation.set(0, p.yaw, 0)
-        _dummy.scale.set(1, p.sy ?? 1, 1)
+        _dummy.scale.set(p.sx ?? 1, p.sy ?? 1, p.sz ?? 1)
         _dummy.updateMatrix()
         mesh.setMatrixAt(i, _dummy.matrix)
       }
@@ -239,16 +247,12 @@ function gridLines(): number[] {
   return lines
 }
 
-function crossInset(tile: Tile, eastWest: boolean): number {
-  return (eastWest ? tile.sizeX : tile.sizeZ) * 0.5
-}
-
 function fillSpan(
   lines: number[],
   fixed: number,
   eastWest: boolean,
-  arterial: Tile,
-  cross: Tile,
+  straight: Tile,
+  crossHalf: number,
   add: (tile: Tile, pose: Pose) => void,
   asphalt: Pose[],
 ): void {
@@ -256,15 +260,13 @@ function fillSpan(
   for (let i = 0; i < lines.length - 1; i++) {
     const a = lines[i]
     const b = lines[i + 1]
-    const insetA = crossInset(cross, eastWest)
-    const insetB = insetA
-    const cursor = a + insetA - SIDEWALK_OVERLAP
-    const end = b - insetB + SIDEWALK_OVERLAP
+    const cursor = a + crossHalf - SIDEWALK_OVERLAP
+    const end = b - crossHalf + SIDEWALK_OVERLAP
     if (end - cursor >= 4) {
-      packStraight(cursor, end, arterial, eastWest, fixed, yaw, add)
+      packStraight(cursor, end, straight, eastWest, fixed, yaw, add)
     }
-    const asStart = a + insetA + ASPHALT_STOP
-    const asEnd = b - insetB - ASPHALT_STOP
+    const asStart = a + crossHalf + ASPHALT_STOP
+    const asEnd = b - crossHalf - ASPHALT_STOP
     if (asEnd - asStart < 3) continue
     const mid = (asStart + asEnd) * 0.5
     const ax = eastWest ? mid : fixed
@@ -338,7 +340,7 @@ function addAsphalt(
     const p = poses[i]
     _dummy.position.set(p.x, p.y ?? 0, p.z)
     _dummy.rotation.set(0, p.yaw, 0)
-    _dummy.scale.set(1, 1, p.sy ?? 1)
+    _dummy.scale.set(p.sx ?? 1, 1, p.sy ?? 1)
     _dummy.updateMatrix()
     mesh.setMatrixAt(i, _dummy.matrix)
   }

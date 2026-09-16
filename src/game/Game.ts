@@ -116,13 +116,10 @@ export class Game {
 
     const mouse = this.input.consumeMouse()
     if (this.input.consumeViewToggle() && this.player) this.cameraRig.toggle()
-    if (this.input.consumeLookHoldToggle() && this.cameraRig.mode === 'cockpit') {
-      this.cameraRig.toggleLookHold()
-    }
+    if (this.input.consumeLookHoldToggle()) this.cameraRig.toggleLookHold()
     if (this.input.consumeLightsToggle() && this.player) this.player.toggleLights()
     if (this.input.consumeHorn()) void this.audio.unlock().then(() => this.audio.horn())
     if (this.playing && this.player) {
-      if (this.cameraRig.mode === 'chase') this.player.nudgeYaw(-mouse.dx * 0.0046)
       this.player.drive(
         this.input.throttle(),
         this.input.steer(),
