@@ -257,7 +257,15 @@ export class Atmosphere {
     scene.add(this.hemi)
 
     this.sun = new DirectionalLight(0xffe2b8, 1.45)
-    this.sun.castShadow = false
+    this.sun.castShadow = true
+    this.sun.shadow.mapSize.set(1024, 1024)
+    this.sun.shadow.camera.near = 8
+    this.sun.shadow.camera.far = 320
+    this.sun.shadow.camera.left = -48
+    this.sun.shadow.camera.right = 48
+    this.sun.shadow.camera.top = 48
+    this.sun.shadow.camera.bottom = -48
+    this.sun.shadow.bias = -0.0004
     scene.add(this.sun)
     scene.add(this.sun.target)
 
@@ -322,7 +330,7 @@ export class Atmosphere {
 
     this.sun.color.copy(_sunCol)
     this.sun.intensity = sunLit * 1.48 + this.flash * 1.8
-    this.sun.castShadow = false
+    this.sun.castShadow = this.sun.intensity > 0.1
     this.moon.color.copy(_moonCol)
     this.moon.intensity = (moonLit * 0.55 + night * 0.06) * (1 - this.mist * 0.35)
     this.hemi.color.copy(_hemiSky)

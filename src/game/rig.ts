@@ -294,35 +294,61 @@ function findSteeringWheel(visual: Object3D, eye: { x: number; y: number; z: num
   const wheel = named ?? pickSteeringMesh(visual, eye)
   if (!wheel) return null
   box.setFromObject(wheel)
-  visual.worldToLocal(_world.copy(box.getCenter(new Vector3())))
+  const hub = box.getCenter(new Vector3())
+  const logo = findSteeringLogo(visual, wheel, hub)
+  if (logo) {
+    box.setFromObject(logo)
+    box.getCenter(hub)
+  }
+  visual.worldToLocal(_world.copy(hub))
   const pivot = new Group()
   pivot.name = 'SteerWheel'
   visual.add(pivot)
   pivot.position.copy(_world)
   pivot.attach(wheel)
-  const axis = steeringColumnAxis(wheel, pivot)
-  if (DESCRIBE) console.info('Steering wheel', wheel.name, axis.toArray())
+  if (logo) pivot.attach(logo)
+  const axis = steeringColumnAxis(visual, pivot, eye)
+  if (DESCRIBE) console.info('Steering wheel', wheel.name, logo?.name, axis.toArray())
   return { pivot, rest: pivot.quaternion.clone(), axis }
 }
 
-/** Thinnest local AABB axis = column. Spin stays in the wheel plane. */
-function steeringColumnAxis(mesh: Mesh, pivot: Group): Vector3 {
-  const geo = mesh.geometry
-  if (!geo.boundingBox) geo.computeBoundingBox()
-  geo.boundingBox!.getSize(_size)
-  const local = new Vector3(1, 0, 0)
-  if (_size.y <= _size.x && _size.y <= _size.z) local.set(0, 1, 0)
-  else if (_size.z <= _size.x && _size.z <= _size.y) local.set(0, 0, 1)
-  const origin = new Vector3()
-  const tip = local.clone()
-  mesh.localToWorld(origin)
-  mesh.localToWorld(tip)
-  pivot.worldToLocal(origin)
-  pivot.worldToLocal(tip)
-  const axis = tip.sub(origin).normalize()
-  const dash = new Vector3(0, -0.28, 1).normalize()
-  if (axis.dot(dash) < 0) axis.negate()
-  return axis
+/** Column points from the driver eye through the hub into the dash — in-plane spin. */
+function steeringColumnAxis(
+  visual: Object3D,
+  pivot: Group,
+  eye: { x: number; y: number; z: number },
+): Vector3 {
+  const eyeLocal = new Vector3(eye.x, eye.y, eye.z)
+  const parent = visual.parent
+  if (parent) parent.localToWorld(eyeLocal)
+  visual.worldToLocal(eyeLocal)
+  const axis = pivot.position.clone().sub(eyeLocal)
+  if (axis.lengthSq() < 1e-8) axis.set(0, -0.32, 0.57)
+  return axis.normalize()
+}
+
+function findSteeringLogo(visual: Object3D, wheel: Mesh, hubWorld: Vector3): Mesh | undefined {
+  const box = new Box3()
+  let best: Mesh | undefined
+  let bestDist = 0.12
+  visual.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh || mesh === wheel) return
+    const cromado =
+      /Cromado/i.test(mesh.name) ||
+      (mesh.material instanceof MeshStandardMaterial && /Cromado/i.test(mesh.material.name))
+    if (!cromado) return
+    box.setFromObject(mesh)
+    box.getCenter(_center)
+    box.getSize(_size)
+    if (Math.max(_size.x, _size.y, _size.z) > 0.09) return
+    const dist = _center.distanceTo(hubWorld)
+    if (dist < bestDist) {
+      bestDist = dist
+      best = mesh
+    }
+  })
+  return best
 }
 
 function pickSteeringMesh(visual: Object3D, eye: { x: number; y: number; z: number }): Mesh | null {

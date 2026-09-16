@@ -5,6 +5,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  PCFShadowMap,
   PlaneGeometry,
   RepeatWrapping,
   Scene,
@@ -140,8 +141,9 @@ export function configureRenderer(renderer: import('three').WebGLRenderer): void
   renderer.outputColorSpace = SRGBColorSpace
   renderer.toneMapping = ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.02
-  renderer.shadowMap.enabled = false
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1))
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = PCFShadowMap
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
 }
 
 function makeLotMaterial(): MeshStandardMaterial {

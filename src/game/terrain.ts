@@ -43,12 +43,12 @@ function roadDeck(x: number, z: number): number {
   return roadFlatten(x, z) * 0.48
 }
 
-/** Lip of the pack sidewalk — ~0.38 m above the asphalt so the hull climbs the curb. */
+/** Sidewalk lip as a short ramp so the hull pitches over it instead of popping. */
 function sidewalkStep(x: number, z: number): number {
   const d = distToRoad(x, z)
-  const up = smoothstep(ROAD_INNER, ROAD_INNER + 0.18, d)
-  const down = 1 - smoothstep(ROAD_HALF - 0.12, ROAD_HALF + 1.1, d)
-  return 0.38 * up * down
+  const up = smoothstep(ROAD_INNER - 0.55, ROAD_INNER + 1.7, d)
+  const down = 1 - smoothstep(ROAD_HALF - 0.25, ROAD_HALF + 1.4, d)
+  return 0.34 * up * down
 }
 
 /** Height the car sits on, including pavement and sidewalk curb. */

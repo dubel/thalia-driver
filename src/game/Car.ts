@@ -231,7 +231,7 @@ export class Car {
     this.hullYaw = yaw
     this.vx = dt > 1e-5 ? (this.object.position.x - prevX) / dt : 0
     this.vz = dt > 1e-5 ? (this.object.position.z - prevZ) / dt : 0
-    this.sitOnTerrain()
+    this.sitOnTerrain(dt)
     this.spinWheels(dt)
   }
 
@@ -262,14 +262,14 @@ export class Car {
     }
   }
 
-  sitOnTerrain(): void {
+  sitOnTerrain(dt = 0): void {
     const x = this.object.position.x
     const z = this.object.position.z
     const yaw = this.hullYaw
     const sin = Math.sin(yaw)
     const cos = Math.cos(yaw)
     const along = this.halfLength * 0.88
-    const across = this.halfWidth * 0.96
+    const across = this.halfWidth * 0.82
     const hFR = surfaceHeight(x + sin * along + cos * across, z + cos * along - sin * across, yaw)
     const hFL = surfaceHeight(x + sin * along - cos * across, z + cos * along + sin * across, yaw)
     const hBR = surfaceHeight(x - sin * along + cos * across, z - cos * along - sin * across, yaw)
@@ -278,11 +278,19 @@ export class Car {
     const hB = (hBR + hBL) * 0.5
     const hR = (hFR + hBR) * 0.5
     const hL = (hFL + hBL) * 0.5
-    const avg = (hFR + hFL + hBR + hBL) * 0.25
-    const hi = Math.max(hFR, hFL, hBR, hBL)
-    this.object.position.y = Math.max(avg, hi - 0.06)
-    this.terrainPitch = clampTilt(Math.atan2(hB - hF, along * 2))
-    this.terrainRoll = clampTilt(Math.atan2(hL - hR, across * 2))
+    const targetY = (hFR + hFL + hBR + hBL) * 0.25
+    const targetPitch = clampTilt(Math.atan2(hB - hF, along * 2))
+    const targetRoll = clampTilt(Math.atan2(hL - hR, across * 2))
+    if (dt <= 0) {
+      this.object.position.y = targetY
+      this.terrainPitch = targetPitch
+      this.terrainRoll = targetRoll
+    } else {
+      const k = 1 - Math.exp(-11 * dt)
+      this.object.position.y += (targetY - this.object.position.y) * k
+      this.terrainPitch += (targetPitch - this.terrainPitch) * k
+      this.terrainRoll += (targetRoll - this.terrainRoll) * k
+    }
     this.applyHullPose()
   }
 

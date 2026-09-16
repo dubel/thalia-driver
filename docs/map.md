@@ -15,7 +15,7 @@ Top-down, **top of this doc = +Z = north**.
                     south
 ```
 
-Playable square: **±475 m** (`ARENA_HALF`). Surface is 8× Karaluch’s 336 m lot. The city grid is nearly flat; off-road ground ripples a few tens of centimetres. Sidewalks sit ~0.38 m above the asphalt so the car climbs the curb instead of clipping through it.
+Playable square: **±475 m** (`ARENA_HALF`). Surface is 8× Karaluch’s 336 m lot. The city grid is nearly flat; off-road ground ripples a few tens of centimetres. Sidewalks sit ~0.34 m above the asphalt on a short ramp so the car pitches onto the curb instead of popping up.
 
 ## Roads
 

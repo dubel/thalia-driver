@@ -123,7 +123,7 @@ export function addStreetCity(
     if (!poses?.length) continue
     for (const part of tile.parts) {
       const mesh = new InstancedMesh(part.geo, part.material, poses.length)
-      mesh.receiveShadow = false
+      mesh.receiveShadow = true
       mesh.castShadow = false
       mesh.frustumCulled = false
       mesh.name = `Street:${tile.name}`
@@ -312,7 +312,7 @@ function addAsphalt(
     mat.map.needsUpdate = true
   }
   const mesh = new InstancedMesh(geo, mat, poses.length)
-  mesh.receiveShadow = false
+  mesh.receiveShadow = true
   mesh.castShadow = false
   mesh.frustumCulled = false
   mesh.name = 'Street:asphalt'
