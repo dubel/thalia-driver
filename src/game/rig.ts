@@ -1,6 +1,8 @@
 import {
   Box3,
   Group,
+  Mesh,
+  MeshStandardMaterial,
   Object3D,
   Vector3,
   type Camera,
@@ -137,6 +139,8 @@ export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
     })
   }
 
+  if (config.paintColor !== undefined) recodePaint(visual, config)
+
   const body = new Box3().setFromObject(visual)
   body.getSize(_size)
   return {
@@ -147,4 +151,24 @@ export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
     halfLength: Math.max(_size.z * 0.48, 1.4),
     height: _size.y,
   }
+}
+
+function recodePaint(root: Object3D, config: CarConfig): void {
+  const seen = new Set<MeshStandardMaterial>()
+  root.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    for (const mat of mats) {
+      if (!(mat instanceof MeshStandardMaterial)) continue
+      if (!/Pintura/i.test(mat.name)) continue
+      if (seen.has(mat)) continue
+      seen.add(mat)
+      mat.color.setHex(config.paintColor ?? 0xc6ccd2)
+      if (config.paintMetalness !== undefined) mat.metalness = config.paintMetalness
+      if (config.paintRoughness !== undefined) mat.roughness = config.paintRoughness
+      mat.envMapIntensity = 1.25
+      mat.needsUpdate = true
+    }
+  })
 }

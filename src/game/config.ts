@@ -12,6 +12,10 @@ export type CarConfig = {
   cameraDistance: number
   cameraHeight: number
   wheelNames: string[]
+  /** Body paint (`Carro_Pintura`). Leave unset to keep the GLB colour. */
+  paintColor?: number
+  paintMetalness?: number
+  paintRoughness?: number
   label?: string
 }
 
@@ -50,5 +54,8 @@ export const PLAYER_CAR: CarConfig = {
   cameraDistance: 8.6,
   cameraHeight: 2.55,
   wheelNames: ['roda1', 'roda2', 'roda3', 'roda4'],
+  paintColor: 0xc6ccd2,
+  paintMetalness: 0.68,
+  paintRoughness: 0.2,
   label: 'Thalia',
 }
