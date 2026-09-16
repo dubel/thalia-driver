@@ -21,3 +21,15 @@ Sketchfab GLBs ship with cameras, odd forward axes, and wheels not at origin. `n
 ## Empty first
 
 City, traffic, and cop chases come after the Thalia drives well on a blank lot. Do not fill the square to “look like NFS” before the car feels right.
+
+## Orthogonal grid only
+
+The old-street pack has curves (`Cube.002`). We do not use them. Crossings are `Cube.001` (four square corners), straights are `Cube`. Carriageway fill is the pack’s glossy `Materiais.*`, not sidewalk `Material`.
+
+## Heightfield curb, not a physics engine
+
+The pack sidewalk is a lip. The car climbs it because `surfaceHeight` adds a short ramp and sit uses four-wheel average (Karaluch). Do not add Rapier / extra colliders for that.
+
+## Procedural cluster
+
+The GLB binnacle is empty discs. Gauges are a canvas in `cluster.ts` (Clio II / Thalia Jaeger: tacho left, speedo right). Backlight is a cabin function of `L`, not of time of day.

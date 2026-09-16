@@ -20,6 +20,7 @@ description: >-
 
 - Keep `ARENA_HALF = 475` (8× Karaluch surface). Roads live on `ROAD_STEP`.
 - Flatten or grade in `terrain.ts`. Streets are a nearly-flat city grid.
+- Orthogonal tiles only: `Cube.001` at joins, `Cube` on spans. Lamps: sidewalk grass, skip crossings.
 - After a ground change, drive the rim and the spawn.
 
 **GLB / car**
@@ -27,6 +28,8 @@ description: >-
 - Constants in `config.ts`. After `normalizeModel` only `position.y +=`.
 - Wheels: `roda1`–`roda4`, pivot at bbox center, `?describe=true`.
 - Forward is +Z. Fix with visual yaw, not hull spawn hacks.
+- Steering: `Mesh15` + hub `Mesh14`, column through the driver eye. Cluster: `cluster.ts`, ruby only with `L`.
+- Sit is four-wheel average over the sidewalk ramp — not `max()` / `min(center)`.
 
 **Camera**
 
@@ -35,6 +38,7 @@ description: >-
 **HUD**
 
 - Overlay `pointer-events: none`, card `auto`, so Drive stays clickable.
+- 2D speedo is chase-only; cockpit uses the binnacle cluster.
 
 ## Verify
 

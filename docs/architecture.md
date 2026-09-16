@@ -18,7 +18,7 @@ main.ts
 - Unit ≈ 1 m.
 - `ARENA_HALF = 475` — 8× Karaluch’s surface (950 m square).
 - **+Z north, +X east.** Yaw `0` = nose on +Z.
-- Terrain: `terrainHeight` + `Car.sitOnTerrain()`.
+- Terrain: `terrainHeight` + `roadDeck` + sidewalk ramp, then `Car.sitOnTerrain()` (four-wheel average, short lerp).
 
 ## Car rig
 
@@ -30,7 +30,7 @@ main.ts
 - Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel is `Mesh15_Carro_Plastico_0` plus the chrome Renault hub (`Mesh14`); it spins around the column (driver-eye through the hub), opposite `steerAngle`.
 - `L` toggles head / tail emissive plus two SpotLights that throw a cone along +Z. Front `Lanterna` meshes are cloned separately from the rear so they stay white.
 
-Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse never yaws the hull — chase and cockpit both look with the mouse. `Shift` honks. Diesel loop plays while moving. Cockpit cluster is a canvas plane (`cluster.ts`) over the stock binnacle: tacho left, speedo right, green sidelight telltale; ruby backlight only with `L`.
+Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse never yaws the hull — chase and cockpit both look with the mouse. `Shift` honks. Diesel loop plays while moving. Body paint + wheels cast shadows; streets and ground receive them. Cockpit cluster is a canvas plane (`cluster.ts`) over the stock binnacle: tacho left, speedo right, green sidelight telltale; ruby backlight only with `L` (unlit faces stay dim, especially at night). The 2D km/h overlay hides in cockpit.
 
 Weather SFX (rain, thunder, birds) live in `audio.ts`, copied from Karaluch. `?fps=true` / `?fps=false` shows or hides the overlay counter.
 
