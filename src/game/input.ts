@@ -4,6 +4,8 @@ export class Input {
   mouseDy = 0
   pointerLocked = false
   restart = false
+  viewToggle = false
+  lookHoldToggle = false
 
   private readonly canvas: HTMLCanvasElement
   private armed = false
@@ -23,6 +25,8 @@ export class Input {
   arm(): void {
     this.armed = true
     this.restart = false
+    this.viewToggle = false
+    this.lookHoldToggle = false
     this.mouseDx = 0
     this.mouseDy = 0
   }
@@ -38,6 +42,18 @@ export class Input {
     const restart = this.restart
     this.restart = false
     return restart
+  }
+
+  consumeViewToggle(): boolean {
+    const toggled = this.viewToggle
+    this.viewToggle = false
+    return toggled
+  }
+
+  consumeLookHoldToggle(): boolean {
+    const toggled = this.lookHoldToggle
+    this.lookHoldToggle = false
+    return toggled
   }
 
   throttle(): number {
@@ -68,13 +84,18 @@ export class Input {
       event.code === 'KeyW' ||
       event.code === 'KeyA' ||
       event.code === 'KeyS' ||
-      event.code === 'KeyD'
+      event.code === 'KeyD' ||
+      event.code === 'KeyV' ||
+      event.code === 'KeyF'
     ) {
       event.preventDefault()
     }
     this.keys.add(event.code)
-    if (event.repeat || !this.armed) return
+    if (event.repeat) return
+    if (!this.armed) return
     if (event.code === 'KeyR') this.restart = true
+    if (event.code === 'KeyV' || event.key === 'v' || event.key === 'V') this.viewToggle = true
+    if (event.code === 'KeyF' || event.key === 'f' || event.key === 'F') this.lookHoldToggle = true
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {

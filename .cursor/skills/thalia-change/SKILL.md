@@ -18,7 +18,7 @@ description: >-
 
 **Lot / terrain**
 
-- Keep `ARENA_HALF = 168`.
+- Keep `ARENA_HALF = 475` (8× Karaluch surface). Roads live on `ROAD_STEP`.
 - Flatten or grade in `terrain.ts`. Skip mounds until they have a map entry.
 - After a ground change, drive the rim and the spawn.
 

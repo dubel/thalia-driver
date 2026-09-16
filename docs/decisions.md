@@ -10,9 +10,9 @@ Need for Speed / Driver: chase cam, arcade acceleration, an empty lot you can ac
 
 Same call as Karaluch: Three.js + our loop. The lot is small, the car is one body, heightfield sit is enough. ECS / Rapier / R3F is cost without gain at this scope.
 
-## Same arena size
+## Lot size
 
-`ARENA_HALF = 168` is the proven playable square. Changing it changes camera fog, shadow follow, and how fast the lot *feels*. Do not resize it as a drive-feel tweak.
+Karaluch was `ARENA_HALF = 168`. This lot is **8× that surface** (`ARENA_HALF = 475`). Fog, sky sphere, and camera far plane scale with it. Do not resize it as a drive-feel tweak.
 
 ## Rig like the tank
 

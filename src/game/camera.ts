@@ -7,9 +7,16 @@ const _look = new Vector3()
 const _pivot = new Vector3()
 const _desired = new Vector3()
 const _dir = new Vector3()
+const _eye = new Vector3()
 
 const MIN_ARM = 3.2
 const LOOK_AHEAD = 9.5
+const LOOK_YAW_LIMIT = 1.15
+const LOOK_PITCH_MIN = -0.42
+const LOOK_PITCH_MAX = 0.38
+const LOOK_RETURN = 5.4
+
+export type CameraMode = 'chase' | 'cockpit'
 
 function wrapPi(angle: number): number {
   let a = angle
@@ -20,18 +27,35 @@ function wrapPi(angle: number): number {
 
 export class FollowCamera {
   readonly camera: PerspectiveCamera
+  mode: CameraMode = 'chase'
+  lookHold = false
   private yaw = 0
   private ready = false
   private prevHullYaw = 0
   private shakeAmp = 0
   private shakePhase = 0
+  private lookYaw = 0
+  private lookPitch = 0
 
   constructor() {
-    this.camera = new PerspectiveCamera(62, 1, 0.2, 920)
+    this.camera = new PerspectiveCamera(62, 1, 0.2, 2200)
   }
 
   get facingYaw(): number {
     return this.yaw
+  }
+
+  toggle(): CameraMode {
+    this.mode = this.mode === 'chase' ? 'cockpit' : 'chase'
+    this.lookYaw = 0
+    this.lookPitch = 0
+    this.applyLens()
+    return this.mode
+  }
+
+  toggleLookHold(): boolean {
+    this.lookHold = !this.lookHold
+    return this.lookHold
   }
 
   reset(car: Car): void {
@@ -39,6 +63,9 @@ export class FollowCamera {
     this.prevHullYaw = car.hullYaw
     this.ready = true
     this.shakeAmp = 0
+    this.lookYaw = 0
+    this.lookPitch = 0
+    this.applyLens()
   }
 
   shake(amount: number): void {
@@ -50,9 +77,56 @@ export class FollowCamera {
     this.camera.updateProjectionMatrix()
   }
 
-  update(car: Car, dt: number, blockers: ObstacleSet): void {
+  update(car: Car, dt: number, blockers: ObstacleSet, mouseDx: number, mouseDy: number): void {
     if (!this.ready) this.reset(car)
+    if (this.mode === 'cockpit') this.updateCockpit(car, dt, mouseDx, mouseDy)
+    else this.updateChase(car, dt, blockers)
+  }
 
+  private applyLens(): void {
+    if (this.mode === 'cockpit') {
+      this.camera.fov = 74
+      this.camera.near = 0.05
+    } else {
+      this.camera.fov = 62
+      this.camera.near = 0.2
+    }
+    this.camera.updateProjectionMatrix()
+  }
+
+  private updateCockpit(car: Car, dt: number, mouseDx: number, mouseDy: number): void {
+    const moving = Math.abs(mouseDx) + Math.abs(mouseDy) > 0.35
+    if (moving) {
+      this.lookYaw -= mouseDx * 0.0024
+      this.lookPitch -= mouseDy * 0.0021
+      this.lookYaw = Math.max(-LOOK_YAW_LIMIT, Math.min(LOOK_YAW_LIMIT, this.lookYaw))
+      this.lookPitch = Math.max(LOOK_PITCH_MIN, Math.min(LOOK_PITCH_MAX, this.lookPitch))
+    } else if (!this.lookHold) {
+      const k = 1 - Math.exp(-LOOK_RETURN * dt)
+      this.lookYaw += (0 - this.lookYaw) * k
+      this.lookPitch += (0 - this.lookPitch) * k
+      if (Math.abs(this.lookYaw) < 1e-4) this.lookYaw = 0
+      if (Math.abs(this.lookPitch) < 1e-4) this.lookPitch = 0
+    }
+
+    const eye = car.config.cockpitEye
+    const yaw = this.lookYaw
+    const pitch = car.config.cockpitPitch + this.lookPitch
+    const ahead = car.config.cockpitLookAhead
+    _eye.set(eye.x, eye.y, eye.z)
+    car.object.updateMatrixWorld()
+    car.object.localToWorld(_eye)
+    this.camera.position.copy(_eye)
+    _look.set(
+      eye.x + Math.sin(yaw) * Math.cos(pitch) * ahead,
+      eye.y + Math.sin(pitch) * ahead,
+      eye.z + Math.cos(yaw) * Math.cos(pitch) * ahead,
+    )
+    car.object.localToWorld(_look)
+    this.camera.lookAt(_look)
+  }
+
+  private updateChase(car: Car, dt: number, blockers: ObstacleSet): void {
     const hullRate = wrapPi(car.hullYaw - this.prevHullYaw) / Math.max(dt, 1 / 120)
     this.prevHullYaw = car.hullYaw
 

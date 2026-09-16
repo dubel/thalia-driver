@@ -36,7 +36,20 @@ canvas#game {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 24px;
   padding: 18px 24px;
+}
+
+.atmos {
+  flex: 1;
+  padding-top: 4px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #c9d4a6;
+  opacity: 0.8;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
 }
 
 .brand {

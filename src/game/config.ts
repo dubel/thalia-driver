@@ -16,6 +16,10 @@ export type CarConfig = {
   paintColor?: number
   paintMetalness?: number
   paintRoughness?: number
+  /** Driver-eye offset in hull space (y from underside, +Z forward, +X right / this GLB’s wheel side). */
+  cockpitEye: { x: number; y: number; z: number }
+  cockpitLookAhead: number
+  cockpitPitch: number
   label?: string
 }
 
@@ -29,8 +33,15 @@ const query = new URLSearchParams(window.location.search)
 export const SHOW_FPS = parseFlag(query.get('fps'))
 export const DESCRIBE = parseFlag(query.get('describe'))
 
-/** Playable half-extent; same 336 m square as Karaluch (`ARENA_HALF = 168`). */
-export const ARENA_HALF = 168
+/** Playable half-extent. Karaluch was 168; 8× the surface → 168 × √8 ≈ 475. */
+export const ARENA_HALF = 475
+/** City-grid spacing between road centerlines (m). */
+export const ROAD_STEP = 80
+/** Half-width of a paved corridor, matching the scaled street tile. */
+export const ROAD_HALF = 4.6
+export const STREET_WIDTH = 9
+export const STREET_URL = new URL('../../assets/modular_street__pavement_wet_lp.glb', import.meta.url)
+  .href
 
 /** 2006 Renault Thalia / Symbol / Clio sedan, overall length ~4.26 m. */
 export const THALIA_LENGTH = 4.26
@@ -57,5 +68,8 @@ export const PLAYER_CAR: CarConfig = {
   paintColor: 0xc6ccd2,
   paintMetalness: 0.68,
   paintRoughness: 0.2,
+  cockpitEye: { x: 0.38, y: 1.18, z: -0.04 },
+  cockpitLookAhead: 2.8,
+  cockpitPitch: -0.05,
   label: 'Thalia',
 }

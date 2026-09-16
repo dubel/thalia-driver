@@ -5,18 +5,18 @@ Single-thread `requestAnimationFrame` loop in `Game.loop`. No ECS, React, or sep
 ```
 main.ts
   new Game(canvas, hud).start()
-    Arena (lot, sun, grid, curb)
-    load Thalia GLB (LoadingManager → hud.setLoadProgress)
+    Arena (lot, atmosphere, curb)
+    load Thalia + street GLBs
     player Car
     hud.readyToPlay
     beginPlay (pointer lock)
-    loop → update → render
+    loop → update (drive, atmosphere.tick) → render
 ```
 
 ## Coordinates
 
 - Unit ≈ 1 m.
-- `ARENA_HALF = 168` — same playable square as Karaluch.
+- `ARENA_HALF = 475` — 8× Karaluch’s surface (950 m square).
 - **+Z north, +X east.** Yaw `0` = nose on +Z.
 - Terrain: `terrainHeight` + `Car.sitOnTerrain()`.
 
@@ -33,7 +33,7 @@ Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, spe
 
 ## Camera
 
-`FollowCamera` copies Karaluch lag: snappy while the hull is turning, tighter when straight. Arm shortens if a hill or curb is in the way.
+`FollowCamera` chase copies Karaluch lag: snappy while the hull is turning, tighter when straight. Arm shortens if a hill or curb is in the way. `V` toggles cockpit (driver-eye in `config.cockpitEye`); mouse look springs back unless `F` has toggled look-hold. Day cycle, rain, and storm live in `atmosphere.ts` (same URL flags as Karaluch: `hour`, `weather`, `mist`, `fixed`, `pauseday`).
 
 ## Build
 

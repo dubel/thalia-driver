@@ -4,6 +4,7 @@ export class Hud {
   private readonly playBtn = document.getElementById('play-btn') as HTMLButtonElement | null
   private readonly speed = document.getElementById('speed')
   private readonly fps = document.getElementById('fps')
+  private readonly atmos = document.getElementById('atmos')
   private playHandler: (() => void) | null = null
 
   constructor() {
@@ -15,11 +16,11 @@ export class Hud {
   }
 
   setLoadProgress(pct: number): void {
-    if (this.status) this.status.textContent = `Loading car… ${Math.round(pct)}%`
+    if (this.status) this.status.textContent = `Loading… ${Math.round(pct)}%`
   }
 
   readyToPlay(): void {
-    if (this.status) this.status.textContent = 'Empty lot is ready.'
+    if (this.status) this.status.textContent = 'Lot is ready.'
     if (this.playBtn) {
       this.playBtn.disabled = false
       this.playBtn.textContent = 'Drive'
@@ -38,6 +39,10 @@ export class Hud {
     if (!this.fps) return
     this.fps.hidden = false
     this.fps.textContent = `${fps} FPS`
+  }
+
+  setAtmosphere(text: string): void {
+    if (this.atmos) this.atmos.textContent = text
   }
 
   setStatus(message: string): void {

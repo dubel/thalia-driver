@@ -1,6 +1,6 @@
 # Thalia Driver
 
-Arcade driving prototype in the browser: a **2006 Renault Thalia** (Symbol / Clio sedan) on an empty lot the same size as the Karaluch tank arena.
+Arcade driving prototype in the browser: a **2006 Renault Thalia** (Symbol / Clio sedan) on a city-grid lot eight times the surface of the Karaluch tank arena.
 
 Vite + TypeScript + Three.js r180. Path is always `/thalia-driver/`.
 
@@ -19,20 +19,33 @@ Live: [https://dubel.dev/thalia-driver/](https://dubel.dev/thalia-driver/)
 | Input | Action |
 | --- | --- |
 | WASD / arrows | drive |
-| mouse L/R | hull yaw (Karaluch-style) |
+| mouse L/R | chase: hull yaw · cockpit: look around |
 | Space | handbrake |
+| V | chase / cockpit |
+| F | cockpit: toggle look-hold (off = spring back) |
 | R | reset to spawn |
 
 ## URL flags
 
-Boolean values: `true` / `1` / `yes`.
+Boolean values: `true` / `1` / `yes`. Without `fixed`, `hour` / `weather` / `mist` are only the **start** — the day still runs (8 real minutes = 1 game day).
 
 | Param | Effect |
 | --- | --- |
+| `hour` | `0`–`24` start hour (default `8`) |
+| `weather` | `clear`, `clouds`, `overcast`, `rain`, `storm` |
+| `mist` | force fog on / off |
+| `fixed` | freeze whatever you also passed (`hour`, `weather`, `mist`) |
+| `pauseday` | freeze the clock |
 | `fps=true` | FPS counter |
 | `describe=true` | label above the car |
 
-Example: `http://127.0.0.1:5173/thalia-driver/?fps=true`
+Examples:
+
+```
+http://127.0.0.1:5173/thalia-driver/?hour=22&weather=rain&fixed=true
+http://127.0.0.1:5173/thalia-driver/?hour=16&weather=storm&fixed=true
+http://127.0.0.1:5173/thalia-driver/?fps=true
+```
 
 ## Agent docs
 

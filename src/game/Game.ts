@@ -2,6 +2,7 @@ import {
   Clock,
   LoadingManager,
   PMREMGenerator,
+  PointLight,
   Scene,
   Vector3,
   WebGLRenderer,
@@ -10,7 +11,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { Arena, configureRenderer } from './Arena'
 import { FollowCamera } from './camera'
-import { ARENA_HALF, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS } from './config'
+import { ARENA_HALF, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS, STREET_URL } from './config'
 import { Input } from './input'
 import { Car } from './Car'
 import type { Hud } from '../ui/hud'
@@ -24,6 +25,7 @@ export class Game {
   private readonly hud: Hud
   private arena!: Arena
   private player!: Car
+  private readonly cabinLight = new PointLight(0xfff1dc, 0, 2.6)
   private playing = false
   private fpsFrames = 0
   private fpsAcc = 0
@@ -52,11 +54,16 @@ export class Game {
     }
     const loader = new GLTFLoader(manager)
     let gltf
+    let streetGltf
     try {
-      gltf = await loader.loadAsync(PLAYER_CAR.url)
+      ;[gltf, streetGltf] = await Promise.all([
+        loader.loadAsync(PLAYER_CAR.url),
+        loader.loadAsync(STREET_URL),
+      ])
     } catch (error) {
       throw new Error(`GLB: ${error instanceof Error ? error.message : String(error)}`)
     }
+    this.arena.addRoads(streetGltf.scene)
     this.player = new Car(
       gltf.scene,
       PLAYER_CAR,
@@ -64,6 +71,8 @@ export class Game {
       PLAYER_SPAWN.yaw,
     )
     this.scene.add(this.player.object)
+    this.cabinLight.position.set(0.18, 1.02, 0.22)
+    this.player.object.add(this.cabinLight)
     this.arena.indexCollision()
     this.player.sitOnTerrain()
     this.cameraRig.reset(this.player)
@@ -97,8 +106,12 @@ export class Game {
     }
 
     const mouse = this.input.consumeMouse()
+    if (this.input.consumeViewToggle() && this.player) this.cameraRig.toggle()
+    if (this.input.consumeLookHoldToggle() && this.cameraRig.mode === 'cockpit') {
+      this.cameraRig.toggleLookHold()
+    }
     if (this.playing && this.player) {
-      this.player.nudgeYaw(-mouse.dx * 0.0046)
+      if (this.cameraRig.mode === 'chase') this.player.nudgeYaw(-mouse.dx * 0.0046)
       this.player.drive(
         this.input.throttle(),
         this.input.steer(),
@@ -111,8 +124,10 @@ export class Game {
     }
 
     if (this.player) {
-      this.arena.followSun(this.player.position)
-      this.cameraRig.update(this.player, dt, this.arena.blockerIndex)
+      this.cabinLight.intensity = this.cameraRig.mode === 'cockpit' ? 0.42 : 0
+      this.arena.tick(dt, this.cameraRig.camera, this.player.position)
+      this.hud.setAtmosphere(this.arena.atmosphere.label)
+      this.cameraRig.update(this.player, dt, this.arena.blockerIndex, mouse.dx, mouse.dy)
     }
   }
 

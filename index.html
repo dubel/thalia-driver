@@ -11,6 +11,7 @@
       <div id="hud" class="hud">
         <div class="hud-top">
           <div class="brand">THALIA</div>
+          <div id="atmos" class="atmos"></div>
           <div id="fps" class="fps" hidden>0 FPS</div>
         </div>
         <div class="hud-bottom">
@@ -23,12 +24,14 @@
       <div id="overlay" class="overlay">
         <div class="overlay-card">
           <h1>THALIA DRIVER</h1>
-          <p class="tag">Empty lot · Renault Thalia</p>
-          <p id="overlay-status" class="status">Loading car… 0%</p>
+          <p class="tag">City grid · Renault Thalia</p>
+          <p id="overlay-status" class="status">Loading… 0%</p>
           <ul>
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive</li>
-            <li><kbd>Mouse</kbd> left/right — yaw</li>
+            <li><kbd>Mouse</kbd> left/right — yaw (chase) / look (cockpit)</li>
             <li><kbd>Space</kbd> handbrake</li>
+            <li><kbd>V</kbd> chase / cockpit</li>
+            <li><kbd>F</kbd> cockpit look hold (no spring-back)</li>
             <li><kbd>R</kbd> reset</li>
           </ul>
           <button id="play-btn" type="button" disabled>Wait for the car</button>

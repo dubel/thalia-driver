@@ -140,6 +140,7 @@ export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
   }
 
   if (config.paintColor !== undefined) recodePaint(visual, config)
+  recodeCabinTrim(visual)
 
   const body = new Box3().setFromObject(visual)
   body.getSize(_size)
@@ -171,4 +172,71 @@ function recodePaint(root: Object3D, config: CarConfig): void {
       mat.needsUpdate = true
     }
   })
+}
+
+const CABIN_GRAY = 0xc9cbce
+
+function recodeCabinTrim(root: Object3D): void {
+  const box = new Box3()
+  root.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const paintable = mats.some(
+      (mat) =>
+        mat instanceof MeshStandardMaterial &&
+        (/Interno/i.test(mat.name) || /Plastico/i.test(mat.name)),
+    )
+    if (!paintable) return
+    box.setFromObject(mesh)
+    if (!isCabinTrim(box)) return
+    const next = mats.map((mat) => {
+      if (!(mat instanceof MeshStandardMaterial)) return mat
+      if (!/Interno/i.test(mat.name) && !/Plastico/i.test(mat.name)) return mat
+      const clone = mat.clone()
+      clone.color.setHex(CABIN_GRAY)
+      clone.metalness = 0.08
+      clone.roughness = 0.58
+      clone.envMapIntensity = 0.55
+      clone.needsUpdate = true
+      return clone
+    })
+    mesh.material = next.length === 1 ? next[0] : next
+  })
+}
+
+function isCabinTrim(box: Box3): boolean {
+  const sx = box.max.x - box.min.x
+  const sy = box.max.y - box.min.y
+  const sz = box.max.z - box.min.z
+  const cx = (box.min.x + box.max.x) * 0.5
+  const cy = (box.min.y + box.max.y) * 0.5
+  const cz = (box.min.z + box.max.z) * 0.5
+  if (isHeadliner(box, sx, sy, sz)) return false
+  if (box.max.y < 0.38) return false
+  const dash =
+    cy > 0.48 &&
+    cy < 1.05 &&
+    box.max.y < 1.1 &&
+    cz > 0.18 &&
+    cz < 1.15 &&
+    sx > 0.7 &&
+    sy < 0.62 &&
+    Math.abs(cx) < 0.55
+  const door =
+    Math.abs(cx) > 0.42 && cy > 0.32 && cy < 1.12 && sx < 0.24 && sy > 0.22 && sz > 0.45 && box.max.y < 1.22
+  const pillar =
+    Math.abs(cx) > 0.28 &&
+    box.max.y > 1.05 &&
+    box.min.y < 0.95 &&
+    sy > 0.42 &&
+    sx < 0.28 &&
+    sz < 0.42
+  return dash || door || pillar
+}
+
+function isHeadliner(box: Box3, sx: number, sy: number, sz: number): boolean {
+  const roofSheet = box.min.y > 0.95 && sy < 0.4 && sx > 0.45 && sz > 0.7
+  const thinHigh = box.min.y > 1.02 && sy < 0.24 && Math.max(sx, sz) > 0.55
+  return roofSheet || thinHigh
 }

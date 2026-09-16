@@ -16,7 +16,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Wheels spin the wrong way / around the car.** Pivots live at each `roda*` bbox center. Spin `pivot.rotation.x`. Steer `steer.rotation.y` only on `front` wheels (`local z > 0` after align).
 
-**Tank-speed car.** Karaluch cruise was ~9–11 m/s. The Thalia tops out at `maxSpeed` 32 m/s (~115 km/h) so the 336 m lot is usable. Do not copy `CRUISE` from the tank.
+**Tank-speed car.** Karaluch cruise was ~9–11 m/s. The Thalia tops out at `maxSpeed` 32 m/s (~115 km/h) so the 950 m lot is usable. Do not copy `CRUISE` from the tank.
 
 **Turn in place like a TKS.** Fine at walking speed (`lowSpeed` factor). Do not give full `turnSpeed` at 30 m/s — that reads as ice, not a sedan.
 

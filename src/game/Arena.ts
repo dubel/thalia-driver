@@ -1,10 +1,6 @@
 import {
   ACESFilmicToneMapping,
   CanvasTexture,
-  Color,
-  DirectionalLight,
-  FogExp2,
-  HemisphereLight,
   InstancedMesh,
   Mesh,
   MeshStandardMaterial,
@@ -15,9 +11,12 @@ import {
   Scene,
   SRGBColorSpace,
   Vector3,
+  type PerspectiveCamera,
 } from 'three'
 import { AabbIndex, type Aabb } from './collision'
 import { ARENA_HALF } from './config'
+import { Atmosphere, type WindClock } from './atmosphere'
+import { addStreetGrid } from './roads'
 import { displaceTerrain, terrainHeight } from './terrain'
 
 const _dummy = new Object3D()
@@ -27,42 +26,34 @@ export class Arena {
   readonly cameraBlockers: Aabb[] = []
   obstacleIndex = new AabbIndex([])
   blockerIndex = new AabbIndex([])
-  readonly sun: DirectionalLight
+  readonly atmosphere: Atmosphere
+  readonly wind: WindClock = {
+    value: 0,
+    strength: { value: 0.5 },
+    dirX: { value: 0.85 },
+    dirZ: { value: 0.35 },
+  }
   private readonly scene: Scene
-  private readonly hemi: HemisphereLight
-  private readonly fog: FogExp2
+  private readonly groundMat: MeshStandardMaterial
+  private streetMat: MeshStandardMaterial | null = null
 
   constructor(scene: Scene) {
     this.scene = scene
-    scene.background = new Color(0x87a0b4)
-    this.fog = new FogExp2(0x87a0b4, 0.0026)
-    scene.fog = this.fog
+    this.atmosphere = new Atmosphere(scene, this.wind)
 
-    this.hemi = new HemisphereLight(0xd7e6f4, 0x4a4030, 0.9)
-    scene.add(this.hemi)
-
-    this.sun = new DirectionalLight(0xffe2b8, 1.55)
-    this.sun.castShadow = true
-    this.sun.shadow.mapSize.set(1024, 1024)
-    this.sun.shadow.camera.near = 4
-    this.sun.shadow.camera.far = 220
-    this.sun.shadow.camera.left = -42
-    this.sun.shadow.camera.right = 42
-    this.sun.shadow.camera.top = 42
-    this.sun.shadow.camera.bottom = -42
-    this.sun.shadow.bias = -0.00035
-    scene.add(this.sun)
-    scene.add(this.sun.target)
-
-    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 180, 180)
+    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 256, 256)
     groundGeo.rotateX(-Math.PI / 2)
     displaceTerrain(groundGeo)
-    const ground = new Mesh(groundGeo, makeLotMaterial())
+    this.groundMat = makeLotMaterial()
+    const ground = new Mesh(groundGeo, this.groundMat)
     ground.receiveShadow = true
     scene.add(ground)
 
-    this.addMarks()
     this.addCurb()
+  }
+
+  addRoads(pack: Object3D): void {
+    this.streetMat = addStreetGrid(this.scene, pack).material
   }
 
   indexCollision(): void {
@@ -70,26 +61,20 @@ export class Arena {
     this.blockerIndex = new AabbIndex(this.cameraBlockers)
   }
 
-  followSun(follow: Vector3): void {
-    this.sun.position.set(follow.x + 48, 86, follow.z + 22)
-    this.sun.target.position.copy(follow)
-    this.sun.target.updateMatrixWorld()
-  }
-
-  private addMarks(): void {
-    const geo = new PlaneGeometry(ARENA_HALF * 2, ARENA_HALF * 2, 180, 180)
-    geo.rotateX(-Math.PI / 2)
-    displaceTerrain(geo)
-    const pos = geo.attributes.position
-    for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getY(i) + 0.05)
-    pos.needsUpdate = true
-    const mesh = new Mesh(geo, makeGridMaterial())
-    mesh.receiveShadow = true
-    this.scene.add(mesh)
+  tick(dt: number, camera: PerspectiveCamera, follow: Vector3): void {
+    this.atmosphere.tick(dt, camera, follow)
+    const wet = this.atmosphere.wetness
+    this.groundMat.roughness = 0.94 - wet * 0.28
+    this.groundMat.metalness = 0.02 + wet * 0.08
+    if (this.streetMat) {
+      this.streetMat.roughness = 0.42 - wet * 0.22
+      this.streetMat.metalness = 0.04 + wet * 0.12
+    }
   }
 
   private addCurb(): void {
-    const count = 4 * 42
+    const perSide = 96
+    const count = 4 * perSide
     const geo = new PlaneGeometry(7.6, 0.55).rotateX(-Math.PI / 2)
     const mat = new MeshStandardMaterial({
       color: 0xc9b48a,
@@ -101,7 +86,6 @@ export class Arena {
     mesh.receiveShadow = true
     const inset = ARENA_HALF - 1.1
     let i = 0
-    const perSide = count / 4
     for (let s = 0; s < 4; s++) {
       for (let k = 0; k < perSide; k++) {
         const t = (k / perSide) * 2 - 1
@@ -180,48 +164,9 @@ function makeLotMap(): CanvasTexture {
   map.colorSpace = SRGBColorSpace
   map.wrapS = RepeatWrapping
   map.wrapT = RepeatWrapping
-  map.repeat.set(36, 36)
+  map.repeat.set(92, 92)
   map.anisotropy = 8
   return map
-}
-
-function makeGridMaterial(): MeshStandardMaterial {
-  const size = 1024
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Missing 2d canvas')
-  ctx.clearRect(0, 0, size, size)
-  ctx.strokeStyle = 'rgba(236, 214, 150, 0.22)'
-  ctx.lineWidth = 3
-  const step = size / 8
-  for (let i = 1; i < 8; i++) {
-    ctx.beginPath()
-    ctx.moveTo(i * step, 0)
-    ctx.lineTo(i * step, size)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(0, i * step)
-    ctx.lineTo(size, i * step)
-    ctx.stroke()
-  }
-  ctx.strokeStyle = 'rgba(236, 214, 150, 0.55)'
-  ctx.lineWidth = 6
-  ctx.strokeRect(10, 10, size - 20, size - 20)
-  const map = new CanvasTexture(canvas)
-  map.colorSpace = SRGBColorSpace
-  map.anisotropy = 8
-  const mat = new MeshStandardMaterial({
-    map,
-    transparent: true,
-    depthWrite: false,
-    roughness: 1,
-    metalness: 0,
-    polygonOffset: true,
-    polygonOffsetFactor: -1,
-  })
-  return mat
 }
 
 function fract(n: number): number {
