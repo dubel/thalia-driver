@@ -41,6 +41,8 @@ export const ARENA_HALF = 475
 export const ROAD_STEP = 80
 /** Half-width of a paved corridor (old-street pack tiles are ~10 m). */
 export const ROAD_HALF = 5.4
+/** Inner asphalt half-width (Cube hole is 6 m). */
+export const ROAD_INNER = 3
 export const STREET_URL = new URL('../../assets/old_street_pack.glb', import.meta.url).href
 export const LAMP_URL = new URL('../../assets/street_lamp.glb', import.meta.url).href
 

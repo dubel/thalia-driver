@@ -116,7 +116,7 @@ export class Car {
     this.object.traverse((child) => {
       const mesh = child as Mesh
       if (!mesh.isMesh) return
-      mesh.castShadow = true
+      mesh.castShadow = /Pintura|roda|Roda|pneu/i.test(mesh.name)
       mesh.receiveShadow = false
     })
     if (DESCRIBE) this.attachLabel()
@@ -139,7 +139,7 @@ export class Car {
       wheel.pivot.rotation.x = 0
       wheel.steer.rotation.y = 0
     }
-    if (this.steering) this.steering.pivot.rotation[this.steering.axis] = 0
+    if (this.steering) this.steering.pivot.quaternion.copy(this.steering.rest)
     this.sitOnTerrain()
   }
 
@@ -247,18 +247,18 @@ export class Car {
   syncLights(night: number): void {
     const on = this.lightsOn
     for (const mat of this.lightMats.head) {
-      mat.emissive.setHex(0xfff4d6)
-      mat.emissiveIntensity = on ? 2.4 + night * 8.5 : 0
+      mat.color.setHex(0xffffff)
+      mat.emissive.setHex(0xf4f7ff)
+      mat.emissiveIntensity = on ? 3.2 + night * 10 : 0
     }
     for (const mat of this.lightMats.tail) {
       mat.emissive.setHex(0xff2a12)
       mat.emissiveIntensity = on ? 1.8 + night * 7.5 : 0
     }
     const throwI = on ? 40 + night * 280 : 0
-    const fillI = on ? 16 + night * 95 : 0
-    for (let i = 0; i < this.headlamps.length; i++) {
-      this.headlamps[i].intensity = i % 2 === 0 ? throwI : fillI
-      this.headlamps[i].visible = on
+    for (const lamp of this.headlamps) {
+      lamp.intensity = throwI
+      lamp.visible = on
     }
   }
 
@@ -269,7 +269,7 @@ export class Car {
     const sin = Math.sin(yaw)
     const cos = Math.cos(yaw)
     const along = this.halfLength * 0.88
-    const across = this.halfWidth * 0.82
+    const across = this.halfWidth * 0.96
     const hFR = surfaceHeight(x + sin * along + cos * across, z + cos * along - sin * across, yaw)
     const hFL = surfaceHeight(x + sin * along - cos * across, z + cos * along + sin * across, yaw)
     const hBR = surfaceHeight(x - sin * along + cos * across, z - cos * along - sin * across, yaw)
@@ -278,8 +278,9 @@ export class Car {
     const hB = (hBR + hBL) * 0.5
     const hR = (hFR + hBR) * 0.5
     const hL = (hFL + hBL) * 0.5
-    const hC = surfaceHeight(x, z, yaw)
-    this.object.position.y = Math.min(hC, (hFR + hFL + hBR + hBL) * 0.25)
+    const avg = (hFR + hFL + hBR + hBL) * 0.25
+    const hi = Math.max(hFR, hFL, hBR, hBL)
+    this.object.position.y = Math.max(avg, hi - 0.06)
     this.terrainPitch = clampTilt(Math.atan2(hB - hF, along * 2))
     this.terrainRoll = clampTilt(Math.atan2(hL - hR, across * 2))
     this.applyHullPose()
@@ -300,26 +301,21 @@ export class Car {
       wheel.steer.rotation.y = wheel.front ? this.steerAngle : this.steerAngle * 0.08
     }
     if (this.steering) {
-      this.steering.pivot.rotation[this.steering.axis] = -this.steerAngle * 8.4
+      this.steering.pivot.quaternion.copy(this.steering.rest)
+      this.steering.pivot.rotateOnAxis(this.steering.axis, -this.steerAngle * 8.4)
     }
   }
 
   private mountHeadlights(): void {
     const sides = [-0.58, 0.58]
     for (const x of sides) {
-      const throwBeam = new SpotLight(0xfff1dc, 0, 82, 0.26, 0.42, 1.15)
+      const throwBeam = new SpotLight(0xf4f7ff, 0, 82, 0.28, 0.42, 1.15)
       throwBeam.position.set(x, 0.72, 1.92)
       throwBeam.target.position.set(x * 0.28, -0.35, 38)
       throwBeam.castShadow = false
-      const fill = new SpotLight(0xffe8c4, 0, 34, 0.52, 0.58, 1.2)
-      fill.position.set(x, 0.7, 1.88)
-      fill.target.position.set(x * 0.45, -0.12, 12)
-      fill.castShadow = false
       this.object.add(throwBeam)
       this.object.add(throwBeam.target)
-      this.object.add(fill)
-      this.object.add(fill.target)
-      this.headlamps.push(throwBeam, fill)
+      this.headlamps.push(throwBeam)
     }
   }
 

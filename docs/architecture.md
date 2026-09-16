@@ -27,8 +27,8 @@ main.ts
 - `stripJunk` — cameras/lights from the GLB.
 - `normalizeModel` — scale to `targetLength` (**4.26 m**), **set Y so the underside is at 0**. Afterwards only `position.y += …`, never `position.set(x, y, z)` (that wipes Y).
 - If the mesh is longer on X than Z, yaw the visual −90° so hull forward is +Z.
-- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel is `Mesh15_Carro_Plastico_0` (not the radio/AC stack) and rotates opposite `steerAngle`.
-- `L` toggles head / tail emissive plus two SpotLights per lamp that throw a cone along +Z.
+- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel is `Mesh15_Carro_Plastico_0` (not the radio/AC stack) and spins around the column (thinnest AABB axis), opposite `steerAngle`.
+- `L` toggles head / tail emissive plus two SpotLights that throw a cone along +Z. Front `Lanterna` meshes are cloned separately from the rear so they stay white.
 
 Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse never yaws the hull — chase and cockpit both look with the mouse. `Shift` honks. Diesel loop plays while moving.
 

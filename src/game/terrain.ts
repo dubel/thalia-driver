@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three'
-import { ARENA_HALF, ROAD_HALF, ROAD_STEP } from './config'
+import { ARENA_HALF, ROAD_HALF, ROAD_INNER, ROAD_STEP } from './config'
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
@@ -43,9 +43,17 @@ function roadDeck(x: number, z: number): number {
   return roadFlatten(x, z) * 0.48
 }
 
-/** Height the car sits on, including pavement thickness. */
+/** Lip of the pack sidewalk — ~0.38 m above the asphalt so the hull climbs the curb. */
+function sidewalkStep(x: number, z: number): number {
+  const d = distToRoad(x, z)
+  const up = smoothstep(ROAD_INNER, ROAD_INNER + 0.18, d)
+  const down = 1 - smoothstep(ROAD_HALF - 0.12, ROAD_HALF + 1.1, d)
+  return 0.38 * up * down
+}
+
+/** Height the car sits on, including pavement and sidewalk curb. */
 export function surfaceHeight(x: number, z: number, _yaw = 0): number {
-  return terrainHeight(x, z) + roadDeck(x, z)
+  return terrainHeight(x, z) + roadDeck(x, z) + sidewalkStep(x, z)
 }
 
 export function displaceTerrain(geometry: BufferGeometry): void {

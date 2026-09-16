@@ -4,6 +4,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  Quaternion,
   Vector3,
   type Camera,
   type Light,
@@ -81,7 +82,8 @@ export type LightMats = {
 
 export type SteeringWheel = {
   pivot: Group
-  axis: 'x' | 'y' | 'z'
+  rest: Quaternion
+  axis: Vector3
 }
 
 export type CarRig = {
@@ -245,29 +247,35 @@ function isHeadliner(box: Box3, sx: number, sy: number, sz: number): boolean {
 function collectLightMats(root: Object3D): LightMats {
   const head: MeshStandardMaterial[] = []
   const tail: MeshStandardMaterial[] = []
-  const remap = new Map<MeshStandardMaterial, MeshStandardMaterial>()
   const box = new Box3()
   root.traverse((child) => {
     const mesh = child as Mesh
     if (!mesh.isMesh) return
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
     box.setFromObject(mesh)
-    const span = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z)
+    const cz = (box.min.z + box.max.z) * 0.5
     const next = mats.map((mat) => {
       if (!(mat instanceof MeshStandardMaterial)) return mat
-      const mapped = remap.get(mat)
-      if (mapped) return mapped
       const farol = /Farol/i.test(mat.name)
       const lantern = /Lanterna/i.test(mat.name)
       const frontColor = /FrontColor/i.test(mat.name)
       if (!farol && !lantern && !frontColor) return mat
-      if (frontColor && span > 0.55) return mat
+      const front = cz > 0.22 || farol
+      const rear = cz < -0.22 && !farol
       const clone = mat.clone()
       clone.emissiveIntensity = 0
+      if (front && !rear) {
+        clone.color.setHex(0xffffff)
+        clone.emissive.setHex(0xf8fbff)
+        if (lantern || frontColor) {
+          clone.map = null
+          clone.emissiveMap = null
+        }
+        head.push(clone)
+      } else {
+        tail.push(clone)
+      }
       clone.needsUpdate = true
-      remap.set(mat, clone)
-      if (farol || frontColor) head.push(clone)
-      if (lantern) tail.push(clone)
       return clone
     })
     mesh.material = next.length === 1 ? next[0] : next
@@ -287,16 +295,34 @@ function findSteeringWheel(visual: Object3D, eye: { x: number; y: number; z: num
   if (!wheel) return null
   box.setFromObject(wheel)
   visual.worldToLocal(_world.copy(box.getCenter(new Vector3())))
-  box.getSize(_size)
   const pivot = new Group()
   pivot.name = 'SteerWheel'
   visual.add(pivot)
   pivot.position.copy(_world)
   pivot.attach(wheel)
-  const axis: 'x' | 'y' | 'z' =
-    _size.z <= _size.x && _size.z <= _size.y ? 'z' : _size.x <= _size.y ? 'x' : 'y'
-  if (DESCRIBE) console.info('Steering wheel', wheel.name, axis)
-  return { pivot, axis }
+  const axis = steeringColumnAxis(wheel, pivot)
+  if (DESCRIBE) console.info('Steering wheel', wheel.name, axis.toArray())
+  return { pivot, rest: pivot.quaternion.clone(), axis }
+}
+
+/** Thinnest local AABB axis = column. Spin stays in the wheel plane. */
+function steeringColumnAxis(mesh: Mesh, pivot: Group): Vector3 {
+  const geo = mesh.geometry
+  if (!geo.boundingBox) geo.computeBoundingBox()
+  geo.boundingBox!.getSize(_size)
+  const local = new Vector3(1, 0, 0)
+  if (_size.y <= _size.x && _size.y <= _size.z) local.set(0, 1, 0)
+  else if (_size.z <= _size.x && _size.z <= _size.y) local.set(0, 0, 1)
+  const origin = new Vector3()
+  const tip = local.clone()
+  mesh.localToWorld(origin)
+  mesh.localToWorld(tip)
+  pivot.worldToLocal(origin)
+  pivot.worldToLocal(tip)
+  const axis = tip.sub(origin).normalize()
+  const dash = new Vector3(0, -0.28, 1).normalize()
+  if (axis.dot(dash) < 0) axis.negate()
+  return axis
 }
 
 function pickSteeringMesh(visual: Object3D, eye: { x: number; y: number; z: number }): Mesh | null {

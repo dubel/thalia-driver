@@ -5,7 +5,6 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
-  PCFShadowMap,
   PlaneGeometry,
   RepeatWrapping,
   Scene,
@@ -38,12 +37,14 @@ export class Arena {
   private readonly groundBase = 0x6e6c5e
   private streetMats: MeshStandardMaterial[] = []
   private streets: ReturnType<typeof addStreetCity> | null = null
+  private streetWet = -1
+  private streetNight = -1
 
   constructor(scene: Scene) {
     this.scene = scene
     this.atmosphere = new Atmosphere(scene, this.wind)
 
-    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 280, 280)
+    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 64, 64)
     groundGeo.rotateX(-Math.PI / 2)
     displaceTerrain(groundGeo)
     this.groundMat = makeLotMaterial()
@@ -71,10 +72,20 @@ export class Arena {
     this.groundMat.roughness = 0.94 - wet * 0.28
     this.groundMat.metalness = 0.02 + wet * 0.08
     this.groundMat.color.setHex(this.groundBase).multiplyScalar(1 - night * 0.72)
-    for (const mat of this.streetMats) {
-      mat.roughness = 0.7 - wet * 0.2
-      mat.metalness = 0.03 + wet * 0.06
-      mat.envMapIntensity = 0.08 + (1 - night) * 0.22
+    const wetChanged = Math.abs(wet - this.streetWet) > 0.01
+    const nightChanged = Math.abs(night - this.streetNight) > 0.01
+    if (wetChanged || nightChanged) {
+      this.streetWet = wet
+      this.streetNight = night
+      for (const mat of this.streetMats) {
+        const asphalt = !!mat.userData.asphalt
+        const base = Number(mat.userData.baseRough ?? (asphalt ? 0.2 : 0.7))
+        mat.roughness = asphalt ? Math.max(0.1, base - wet * 0.08) : 0.7 - wet * 0.2
+        mat.metalness = asphalt ? 0.03 + wet * 0.06 : 0.03 + wet * 0.06
+        mat.envMapIntensity = asphalt
+          ? 0.08 + (1 - night) * 0.1 + wet * 0.06
+          : 0.08 + (1 - night) * 0.22
+      }
     }
     if (this.streets) {
       this.streets.setNight(this.atmosphere.night)
@@ -93,7 +104,7 @@ export class Arena {
     })
     const mesh = new InstancedMesh(geo, mat, count)
     mesh.castShadow = false
-    mesh.receiveShadow = true
+    mesh.receiveShadow = false
     const inset = ARENA_HALF - 1.1
     let i = 0
     for (let s = 0; s < 4; s++) {
@@ -129,9 +140,8 @@ export function configureRenderer(renderer: import('three').WebGLRenderer): void
   renderer.outputColorSpace = SRGBColorSpace
   renderer.toneMapping = ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.02
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = PCFShadowMap
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.shadowMap.enabled = false
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1))
 }
 
 function makeLotMaterial(): MeshStandardMaterial {

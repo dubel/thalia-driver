@@ -34,14 +34,13 @@ const TILE_NAMES = new Set([
 const ARTERIAL = new Set([-320, -160, 0, 160, 320])
 const LAMP_STEP = 28
 const LAMP_SIDE = 6.15
-const GLOW_LIGHTS = 6
+const GLOW_LIGHTS = 2
 const LAMP_DISTANCE = 58
 /** Inner hole of Cube / Cube.001 is 6 m. Stay inside the sidewalks. */
 const ASPHALT_W = 5.92
 const ASPHALT_H = 0.12
 const PAVEMENT = 0.48
 const SIDEWALK_OVERLAP = 0.12
-const ASPHALT_STOP = -0.18
 
 type TilePart = {
   geo: BufferGeometry
@@ -116,7 +115,7 @@ export function addStreetCity(
     fillSpan(lines, x, false, straight, crossHalf, add, asphalt)
   }
 
-  const asphaltMat = addAsphalt(scene, asphalt, straight.parts[0]?.material)
+  const asphaltMat = addAsphalt(scene, asphalt, findAsphaltMat(straight, cross))
 
   const materials: MeshStandardMaterial[] = asphaltMat ? [asphaltMat] : []
   for (const tile of uniqueTiles(tiles)) {
@@ -124,19 +123,11 @@ export function addStreetCity(
     if (!poses?.length) continue
     for (const part of tile.parts) {
       const mesh = new InstancedMesh(part.geo, part.material, poses.length)
-      mesh.receiveShadow = true
+      mesh.receiveShadow = false
       mesh.castShadow = false
       mesh.frustumCulled = false
       mesh.name = `Street:${tile.name}`
-      for (let i = 0; i < poses.length; i++) {
-        const p = poses[i]
-        _dummy.position.set(p.x, p.y ?? 0, p.z)
-        _dummy.rotation.set(0, p.yaw, 0)
-        _dummy.scale.set(p.sx ?? 1, p.sy ?? 1, p.sz ?? 1)
-        _dummy.updateMatrix()
-        mesh.setMatrixAt(i, _dummy.matrix)
-      }
-      mesh.instanceMatrix.needsUpdate = true
+      stampPoses(mesh, poses, 'tile', 1)
       scene.add(mesh)
       materials.push(part.material)
     }
@@ -149,18 +140,10 @@ export function addStreetCity(
     if (!lampPoses.length) break
     const mesh = new InstancedMesh(part.geo, part.material, lampPoses.length)
     mesh.castShadow = false
-    mesh.receiveShadow = true
+    mesh.receiveShadow = false
     mesh.frustumCulled = false
     mesh.name = 'StreetLamp'
-    for (let i = 0; i < lampPoses.length; i++) {
-      const p = lampPoses[i]
-      _dummy.position.set(p.x, p.y ?? 0, p.z)
-      _dummy.rotation.set(0, p.yaw, 0)
-      _dummy.scale.setScalar(lamp.scale)
-      _dummy.updateMatrix()
-      mesh.setMatrixAt(i, _dummy.matrix)
-    }
-    mesh.instanceMatrix.needsUpdate = true
+    stampPoses(mesh, lampPoses, 'lamp', lamp.scale)
     scene.add(mesh)
     lampMats.push(part.material)
   }
@@ -263,21 +246,8 @@ function fillSpan(
     const cursor = a + crossHalf - SIDEWALK_OVERLAP
     const end = b - crossHalf + SIDEWALK_OVERLAP
     if (end - cursor >= 4) {
-      packStraight(cursor, end, straight, eastWest, fixed, yaw, add)
+      packStraight(cursor, end, straight, eastWest, fixed, yaw, add, asphalt)
     }
-    const asStart = a + crossHalf + ASPHALT_STOP
-    const asEnd = b - crossHalf - ASPHALT_STOP
-    if (asEnd - asStart < 3) continue
-    const mid = (asStart + asEnd) * 0.5
-    const ax = eastWest ? mid : fixed
-    const az = eastWest ? fixed : mid
-    asphalt.push({
-      x: ax,
-      z: az,
-      y: terrainHeight(ax, az) + PAVEMENT - ASPHALT_H * 0.5,
-      yaw,
-      sy: asEnd - asStart,
-    })
   }
 }
 
@@ -289,6 +259,7 @@ function packStraight(
   fixed: number,
   yaw: number,
   add: (tile: Tile, pose: Pose) => void,
+  asphalt: Pose[],
 ): void {
   const len = along(tile)
   const step = len * 0.88
@@ -304,8 +275,16 @@ function packStraight(
     else positions[positions.length - 1] = last
   }
   for (const at of positions) {
-    if (eastWest) add(tile, { x: at, z: fixed, yaw })
-    else add(tile, { x: fixed, z: at, yaw })
+    const ax = eastWest ? at : fixed
+    const az = eastWest ? fixed : at
+    add(tile, { x: ax, z: az, yaw })
+    asphalt.push({
+      x: ax,
+      z: az,
+      y: terrainHeight(ax, az) + PAVEMENT - ASPHALT_H * 0.5,
+      yaw,
+      sy: step + 0.2,
+    })
   }
 }
 
@@ -316,38 +295,50 @@ function addAsphalt(
 ): MeshStandardMaterial | null {
   if (!poses.length) return null
   const geo = new BoxGeometry(ASPHALT_W, ASPHALT_H, 1)
-  const mat = src ? src.clone() : new MeshStandardMaterial({ color: 0x5a5b5e })
-  mat.color.multiplyScalar(0.58)
-  mat.roughness = 0.74
+  const mat = src ? src.clone() : new MeshStandardMaterial({ color: 0x3a3c40, roughness: 0.22 })
+  mat.roughness = src?.userData.asphalt ? (src.userData.baseRough ?? 0.2) : 0.22
   mat.metalness = 0.04
-  mat.envMapIntensity = 0.2
+  mat.envMapIntensity = 0.1
   mat.polygonOffset = true
   mat.polygonOffsetFactor = -2
   mat.polygonOffsetUnits = -2
+  mat.userData.asphalt = true
+  mat.userData.baseRough = mat.roughness
   if (mat.map) {
     mat.map = mat.map.clone()
     mat.map.wrapS = RepeatWrapping
     mat.map.wrapT = RepeatWrapping
-    mat.map.repeat.set(1.15, 1)
+    mat.map.repeat.set(1, 1)
     mat.map.needsUpdate = true
   }
   const mesh = new InstancedMesh(geo, mat, poses.length)
-  mesh.receiveShadow = true
+  mesh.receiveShadow = false
   mesh.castShadow = false
   mesh.frustumCulled = false
   mesh.name = 'Street:asphalt'
+  stampPoses(mesh, poses, 'asphalt', 1)
+  scene.add(mesh)
+  return mat
+}
+
+function stampPoses(
+  mesh: InstancedMesh,
+  poses: Pose[],
+  kind: 'tile' | 'asphalt' | 'lamp',
+  lampScale: number,
+): void {
   for (let i = 0; i < poses.length; i++) {
     const p = poses[i]
     _dummy.position.set(p.x, p.y ?? 0, p.z)
     _dummy.rotation.set(0, p.yaw, 0)
-    _dummy.scale.set(p.sx ?? 1, 1, p.sy ?? 1)
+    if (kind === 'asphalt') _dummy.scale.set(p.sx ?? 1, 1, p.sy ?? 1)
+    else if (kind === 'lamp') _dummy.scale.setScalar(lampScale)
+    else _dummy.scale.set(p.sx ?? 1, p.sy ?? 1, p.sz ?? 1)
     _dummy.updateMatrix()
     mesh.setMatrixAt(i, _dummy.matrix)
   }
   mesh.instanceMatrix.needsUpdate = true
-  scene.add(mesh)
   _dummy.scale.set(1, 1, 1)
-  return mat
 }
 
 function layoutLamps(lines: number[]): Pose[] {
@@ -489,11 +480,23 @@ function cloneStreetMat(src: Mesh['material']): MeshStandardMaterial {
   const first = Array.isArray(src) ? src[0] : src
   if (first instanceof MeshStandardMaterial) {
     const mat = first.clone()
+    const asphalt = /Materiais/i.test(mat.name)
+    mat.userData.asphalt = asphalt
+    mat.userData.baseRough = mat.roughness
     mat.polygonOffset = true
     mat.polygonOffsetFactor = -1
-    mat.roughness = Math.max(mat.roughness, 0.68)
-    mat.envMapIntensity = 0.28
+    if (!asphalt) mat.roughness = Math.max(mat.roughness, 0.68)
+    mat.envMapIntensity = asphalt ? 0.1 : 0.28
     return mat
   }
   return new MeshStandardMaterial({ color: 0x5a5a58, roughness: 0.72, envMapIntensity: 0.2 })
+}
+
+function findAsphaltMat(straight: Tile, cross: Tile): MeshStandardMaterial | undefined {
+  for (const tile of [straight, cross]) {
+    for (const part of tile.parts) {
+      if (part.material.userData.asphalt) return part.material
+    }
+  }
+  return straight.parts[1]?.material ?? straight.parts[0]?.material
 }

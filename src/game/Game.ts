@@ -35,7 +35,11 @@ export class Game {
   constructor(canvas: HTMLCanvasElement, hud: Hud) {
     this.hud = hud
     this.input = new Input(canvas)
-    this.renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
+    this.renderer = new WebGLRenderer({
+      canvas,
+      antialias: window.devicePixelRatio < 1.2,
+      powerPreference: 'high-performance',
+    })
     configureRenderer(this.renderer)
     const pmrem = new PMREMGenerator(this.renderer)
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
