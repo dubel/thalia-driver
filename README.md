@@ -12,6 +12,8 @@ npx vite --host 127.0.0.1 --port 5173
 
 → [http://127.0.0.1:5173/thalia-driver/](http://127.0.0.1:5173/thalia-driver/)
 
+Live: [https://dubel.dev/thalia-driver/](https://dubel.dev/thalia-driver/)
+
 ## Controls
 
 | Input | Action |
