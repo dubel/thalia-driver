@@ -8,7 +8,7 @@ import {
   type Camera,
   type Light,
 } from 'three'
-import type { CarConfig } from './config'
+import { DESCRIBE, type CarConfig } from './config'
 
 const _size = new Vector3()
 const _center = new Vector3()
@@ -74,6 +74,16 @@ export type WheelRig = {
   front: boolean
 }
 
+export type LightMats = {
+  head: MeshStandardMaterial[]
+  tail: MeshStandardMaterial[]
+}
+
+export type SteeringWheel = {
+  pivot: Group
+  axis: 'x' | 'y' | 'z'
+}
+
 export type CarRig = {
   root: Group
   visual: Group
@@ -81,6 +91,8 @@ export type CarRig = {
   halfWidth: number
   halfLength: number
   height: number
+  lights: LightMats
+  steering: SteeringWheel | null
 }
 
 export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
@@ -141,6 +153,8 @@ export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
 
   if (config.paintColor !== undefined) recodePaint(visual, config)
   recodeCabinTrim(visual)
+  const lights = collectLightMats(visual)
+  const steering = findSteeringWheel(visual, config.cockpitEye)
 
   const body = new Box3().setFromObject(visual)
   body.getSize(_size)
@@ -151,6 +165,8 @@ export function applyCarRig(model: Object3D, config: CarConfig): CarRig {
     halfWidth: Math.max(_size.x * 0.5, 0.7),
     halfLength: Math.max(_size.z * 0.48, 1.4),
     height: _size.y,
+    lights,
+    steering,
   }
 }
 
@@ -224,4 +240,87 @@ function isHeadliner(box: Box3, sx: number, sy: number, sz: number): boolean {
   const roofSheet = box.min.y > 0.95 && sy < 0.4 && sx > 0.45 && sz > 0.7
   const thinHigh = box.min.y > 1.02 && sy < 0.24 && Math.max(sx, sz) > 0.55
   return roofSheet || thinHigh
+}
+
+function collectLightMats(root: Object3D): LightMats {
+  const head: MeshStandardMaterial[] = []
+  const tail: MeshStandardMaterial[] = []
+  const remap = new Map<MeshStandardMaterial, MeshStandardMaterial>()
+  const box = new Box3()
+  root.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    box.setFromObject(mesh)
+    const span = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z)
+    const next = mats.map((mat) => {
+      if (!(mat instanceof MeshStandardMaterial)) return mat
+      const mapped = remap.get(mat)
+      if (mapped) return mapped
+      const farol = /Farol/i.test(mat.name)
+      const lantern = /Lanterna/i.test(mat.name)
+      const frontColor = /FrontColor/i.test(mat.name)
+      if (!farol && !lantern && !frontColor) return mat
+      if (frontColor && span > 0.55) return mat
+      const clone = mat.clone()
+      clone.emissiveIntensity = 0
+      clone.needsUpdate = true
+      remap.set(mat, clone)
+      if (farol || frontColor) head.push(clone)
+      if (lantern) tail.push(clone)
+      return clone
+    })
+    mesh.material = next.length === 1 ? next[0] : next
+  })
+  return { head, tail }
+}
+
+function findSteeringWheel(visual: Object3D, eye: { x: number; y: number; z: number }): SteeringWheel | null {
+  const box = new Box3()
+  let best: Mesh | null = null
+  let bestScore = Infinity
+  visual.traverse((child) => {
+    const mesh = child as Mesh
+    if (!mesh.isMesh) return
+    if (/roda|pneu|vidro|tire|wheel/i.test(mesh.name)) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const cabin = mats.some(
+      (mat) => mat instanceof MeshStandardMaterial && /Plastico|Interno/i.test(mat.name),
+    )
+    if (!cabin) return
+    box.setFromObject(mesh)
+    visual.worldToLocal(_center.copy(box.getCenter(new Vector3())))
+    box.getSize(_size)
+    const cx = _center.x
+    const cy = _center.y
+    const cz = _center.z
+    const dims = [_size.x, _size.y, _size.z].sort((a, b) => a - b)
+    const thin = dims[0]
+    const mid = dims[1]
+    const wide = dims[2]
+    if (wide < 0.22 || wide > 0.55 || thin > 0.22 || mid < 0.18) return
+    if (Math.abs(cx - eye.x) > 0.42) return
+    if (cy < 0.62 || cy > 1.32) return
+    if (cz < 0.08 || cz > 0.92) return
+    const score =
+      (cx - eye.x) ** 2 + (cy - (eye.y - 0.22)) ** 2 + (cz - 0.42) ** 2 + thin * 0.4
+    if (score < bestScore) {
+      bestScore = score
+      best = mesh
+    }
+  })
+  if (!best) return null
+  const wheel: Mesh = best
+  box.setFromObject(wheel)
+  visual.worldToLocal(_world.copy(box.getCenter(new Vector3())))
+  box.getSize(_size)
+  const pivot = new Group()
+  pivot.name = 'SteerWheel'
+  visual.add(pivot)
+  pivot.position.copy(_world)
+  pivot.attach(wheel)
+  const axis: 'x' | 'y' | 'z' =
+    _size.z <= _size.x && _size.z <= _size.y ? 'z' : _size.x <= _size.y ? 'x' : 'y'
+  if (DESCRIBE) console.info('Steering wheel', wheel.name, axis)
+  return { pivot, axis }
 }

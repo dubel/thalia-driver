@@ -4,13 +4,14 @@ import {
   LinearFilter,
   Mesh,
   Object3D,
+  SpotLight,
   Sprite,
   SpriteMaterial,
   SRGBColorSpace,
   Vector3,
 } from 'three'
 import { DESCRIBE, type CarConfig } from './config'
-import { applyCarRig, type WheelRig } from './rig'
+import { applyCarRig, type LightMats, type SteeringWheel, type WheelRig } from './rig'
 import { clampToBounds, collidesAny, type ObstacleSet } from './collision'
 import { surfaceHeight } from './terrain'
 
@@ -86,10 +87,14 @@ export class Car {
   vx = 0
   vz = 0
   steerAngle = 0
+  lightsOn = false
 
   private readonly spawn = new Vector3()
   private readonly spawnYaw: number
   private readonly wheels: WheelRig[]
+  private readonly lightMats: LightMats
+  private readonly steering: SteeringWheel | null
+  private readonly headlamps: SpotLight[] = []
   private terrainPitch = 0
   private terrainRoll = 0
 
@@ -98,6 +103,8 @@ export class Car {
     const rig = applyCarRig(model, config)
     this.object = rig.root
     this.wheels = rig.wheels
+    this.lightMats = rig.lights
+    this.steering = rig.steering
     this.halfWidth = rig.halfWidth
     this.halfLength = rig.halfLength
     this.height = rig.height
@@ -113,6 +120,8 @@ export class Car {
       mesh.receiveShadow = false
     })
     if (DESCRIBE) this.attachLabel()
+    this.mountHeadlights()
+    if (DESCRIBE && !this.steering) console.warn('Steering wheel mesh not found')
   }
 
   get position(): Vector3 {
@@ -130,6 +139,7 @@ export class Car {
       wheel.pivot.rotation.x = 0
       wheel.steer.rotation.y = 0
     }
+    if (this.steering) this.steering.pivot.rotation[this.steering.axis] = 0
     this.sitOnTerrain()
   }
 
@@ -230,6 +240,28 @@ export class Car {
     this.hullYaw = wrapPi(this.hullYaw + delta)
   }
 
+  toggleLights(): void {
+    this.lightsOn = !this.lightsOn
+  }
+
+  syncLights(night: number): void {
+    const on = this.lightsOn
+    for (const mat of this.lightMats.head) {
+      mat.emissive.setHex(0xfff4d6)
+      mat.emissiveIntensity = on ? 2.4 + night * 8.5 : 0
+    }
+    for (const mat of this.lightMats.tail) {
+      mat.emissive.setHex(0xff2a12)
+      mat.emissiveIntensity = on ? 1.8 + night * 7.5 : 0
+    }
+    const throwI = on ? 40 + night * 280 : 0
+    const fillI = on ? 16 + night * 95 : 0
+    for (let i = 0; i < this.headlamps.length; i++) {
+      this.headlamps[i].intensity = i % 2 === 0 ? throwI : fillI
+      this.headlamps[i].visible = on
+    }
+  }
+
   sitOnTerrain(): void {
     const x = this.object.position.x
     const z = this.object.position.z
@@ -266,6 +298,28 @@ export class Car {
       const radius = Math.max(wheel.radius, 0.28)
       wheel.pivot.rotation.x += travel / radius
       wheel.steer.rotation.y = wheel.front ? this.steerAngle : this.steerAngle * 0.08
+    }
+    if (this.steering) {
+      this.steering.pivot.rotation[this.steering.axis] = this.steerAngle * 8.4
+    }
+  }
+
+  private mountHeadlights(): void {
+    const sides = [-0.58, 0.58]
+    for (const x of sides) {
+      const throwBeam = new SpotLight(0xfff1dc, 0, 82, 0.26, 0.42, 1.15)
+      throwBeam.position.set(x, 0.72, 1.92)
+      throwBeam.target.position.set(x * 0.28, -0.35, 38)
+      throwBeam.castShadow = false
+      const fill = new SpotLight(0xffe8c4, 0, 34, 0.52, 0.58, 1.2)
+      fill.position.set(x, 0.7, 1.88)
+      fill.target.position.set(x * 0.45, -0.12, 12)
+      fill.castShadow = false
+      this.object.add(throwBeam)
+      this.object.add(throwBeam.target)
+      this.object.add(fill)
+      this.object.add(fill.target)
+      this.headlamps.push(throwBeam, fill)
     }
   }
 

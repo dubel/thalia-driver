@@ -24,13 +24,14 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/config.ts` | URL flags, spawn, speeds, GLB URL |
 | `src/game/Arena.ts` | lot, atmosphere lights, curb, street grid |
 | `src/game/atmosphere.ts` | day cycle, weather, rain, storm |
-| `src/game/streets.ts` | old-street pack tiles, flyover, night lamps |
-| `src/game/terrain.ts` | hills, road bed, flyover sit height |
-| `src/game/rig.ts` | `normalizeModel`, wheel pivots, cabin trim |
-| `src/game/Car.ts` | arcade hull physics, sit-on-terrain |
+| `src/game/streets.ts` | old-street pack tiles, night lamps |
+| `src/game/terrain.ts` | nearly-flat city bed, road sit height |
+| `src/game/rig.ts` | `normalizeModel`, wheel pivots, cabin trim, lights, steering wheel |
+| `src/game/Car.ts` | arcade hull physics, sit-on-terrain, headlights |
 | `src/game/camera.ts` | chase follow + cockpit look (`F` hold) |
-| `src/game/input.ts` | WASD, mouse yaw, space, V, F, R |
-| `src/ui/hud.ts` | overlay + speedo + clock |
+| `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R |
+| `src/game/audio.ts` | diesel, horn, rain / thunder / birds |
+| `src/ui/hud.ts` | overlay + speedo + clock + optional FPS |
 
 ## Skill
 

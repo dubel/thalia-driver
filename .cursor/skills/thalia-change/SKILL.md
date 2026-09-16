@@ -19,7 +19,7 @@ description: >-
 **Lot / terrain**
 
 - Keep `ARENA_HALF = 475` (8× Karaluch surface). Roads live on `ROAD_STEP`.
-- Flatten or grade in `terrain.ts`. The flyover is heading-based (`surfaceHeight`), not a second heightfield.
+- Flatten or grade in `terrain.ts`. Streets are a nearly-flat city grid.
 - After a ground change, drive the rim and the spawn.
 
 **GLB / car**

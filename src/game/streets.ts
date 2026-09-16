@@ -12,9 +12,9 @@ import {
   Scene,
 } from 'three'
 import type { Aabb } from './collision'
-import { ARENA_HALF, FLY_X, FLY_Z, ROAD_HALF, ROAD_STEP } from './config'
+import { ARENA_HALF, ROAD_STEP } from './config'
 import { stripJunk } from './rig'
-import { configureFlyover, terrainHeight } from './terrain'
+import { terrainHeight } from './terrain'
 
 const _dummy = new Object3D()
 const _box = new Box3()
@@ -35,10 +35,14 @@ const ARTERIAL = new Set([-320, -160, 0, 160, 320])
 const LAMP_STEP = 28
 const LAMP_SIDE = 6.15
 const GLOW_LIGHTS = 6
-const ASPHALT_W = 7.35
+const LAMP_DISTANCE = 58
+const ASPHALT_W = 5.7
 const ASPHALT_H = 0.12
 const PAVEMENT = 0.48
-const FLY_CLEAR = 24
+/** Pull Cube sidewalks into the Cube.002 plus so the curve meets the straight. */
+const SIDEWALK_OVERLAP = 1.7
+/** Slight overlap onto Cube.002 asphalt; keep the ribbon out of the inner curve. */
+const ASPHALT_STOP = -0.2
 
 type TilePart = {
   geo: BufferGeometry
@@ -51,8 +55,6 @@ type Tile = {
   sizeX: number
   sizeZ: number
   sizeY: number
-  /** Yaw that puts the high end toward +Z (ramps). */
-  highYaw: number
 }
 
 type Pose = { x: number; z: number; y?: number; yaw: number; sy?: number }
@@ -70,7 +72,7 @@ export function addStreetCity(
   scene: Scene,
   pack: Object3D,
   lampRoot: Object3D,
-  obstacles: Aabb[],
+  _obstacles: Aabb[],
 ): StreetWorld {
   stripJunk(pack)
   stripJunk(lampRoot)
@@ -80,9 +82,6 @@ export function addStreetCity(
   const tiles = gatherTiles(pack)
   const arterial = mustTile(tiles, 'Cube')
   const cross = mustTile(tiles, 'Cube.002')
-  const minorCross = tiles.get('Cube.001') ?? cross
-  const ramp = tiles.get('Cube.003') ?? arterial
-  const bridge = tiles.get('Cubo') ?? tiles.get('Cubo.001') ?? arterial
 
   const byName = new Map<string, Pose[]>()
   const add = (tile: Tile, pose: Pose): void => {
@@ -98,20 +97,17 @@ export function addStreetCity(
 
   for (const z of lines) {
     for (const x of lines) {
-      if (isFlyover(x, z)) continue
-      const tile = ARTERIAL.has(x) || ARTERIAL.has(z) ? cross : minorCross
-      add(tile, { x, z, yaw: 0 })
+      add(cross, { x, z, yaw: 0 })
     }
   }
 
   for (const z of lines) {
-    fillSpan(lines, z, true, { arterial, cross, minorCross }, add, asphalt)
+    fillSpan(lines, z, true, arterial, cross, add, asphalt)
   }
   for (const x of lines) {
-    fillSpan(lines, x, false, { arterial, cross, minorCross }, add, asphalt)
+    fillSpan(lines, x, false, arterial, cross, add, asphalt)
   }
 
-  placeFlyover(add, { ramp, bridge })
   const asphaltMat = addAsphalt(scene, asphalt, arterial.parts[0]?.material)
 
   const materials: MeshStandardMaterial[] = asphaltMat ? [asphaltMat] : []
@@ -164,17 +160,11 @@ export function addStreetCity(
 
   const glow: PointLight[] = []
   for (let i = 0; i < GLOW_LIGHTS; i++) {
-    const light = new PointLight(0xffc98a, 0, 32, 1.6)
+    const light = new PointLight(0xffc98a, 0, LAMP_DISTANCE, 1.25)
     light.castShadow = false
     scene.add(light)
     glow.push(light)
   }
-
-  const lift = 2.55
-  const deck = lift + Math.max(bridge.sizeY - 0.4, 4.8)
-  const span = Math.max(bridge.sizeZ, bridge.sizeX) * 0.48
-  configureFlyover(deck, span, ramp.sizeZ * 0.92)
-  addFlyoverPiers(obstacles)
 
   const lamps = lampPoses.map((p) => ({ x: p.x, z: p.z, y: (p.y ?? 0) + lamp.bulbY }))
   return {
@@ -186,10 +176,11 @@ export function addStreetCity(
       const on = night > 0.04
       for (const mat of lampMats) {
         const lampish = /lamp/i.test(mat.name)
-        mat.emissiveIntensity = lampish ? 0.8 + night * 6.5 : night * 0.35
+        mat.emissiveIntensity = lampish ? 1.4 + night * 8.5 : night * 0.45
       }
       for (const light of glow) {
-        light.intensity = on ? 4.5 + night * 14 : 0
+        light.intensity = on ? 16 + night * 36 : 0
+        light.distance = LAMP_DISTANCE
         light.visible = on
       }
     },
@@ -211,10 +202,6 @@ export function addStreetCity(
 
 function tilePoseY(x: number, z: number): number {
   return terrainHeight(x, z)
-}
-
-function isFlyover(x: number, z: number): boolean {
-  return x === FLY_X && z === FLY_Z
 }
 
 function along(tile: Tile): number {
@@ -252,15 +239,6 @@ function gridLines(): number[] {
   return lines
 }
 
-function crossAt(
-  x: number,
-  z: number,
-  kinds: { cross: Tile; minorCross: Tile },
-): Tile | null {
-  if (isFlyover(x, z)) return null
-  return ARTERIAL.has(x) || ARTERIAL.has(z) ? kinds.cross : kinds.minorCross
-}
-
 function crossInset(tile: Tile, eastWest: boolean): number {
   return (eastWest ? tile.sizeX : tile.sizeZ) * 0.5
 }
@@ -269,21 +247,35 @@ function fillSpan(
   lines: number[],
   fixed: number,
   eastWest: boolean,
-  kinds: { arterial: Tile; cross: Tile; minorCross: Tile },
+  arterial: Tile,
+  cross: Tile,
   add: (tile: Tile, pose: Pose) => void,
   asphalt: Pose[],
 ): void {
   const yaw = streetYaw(eastWest)
-  const skipFly = !eastWest && fixed === FLY_X
   for (let i = 0; i < lines.length - 1; i++) {
     const a = lines[i]
     const b = lines[i + 1]
-    const nodeA = crossAt(eastWest ? a : fixed, eastWest ? fixed : a, kinds)
-    const nodeB = crossAt(eastWest ? b : fixed, eastWest ? fixed : b, kinds)
-    const cursor = a + (nodeA ? crossInset(nodeA, eastWest) : 0)
-    const end = b - (nodeB ? crossInset(nodeB, eastWest) : 0)
-    if (end - cursor < 4) continue
-    packStraight(cursor, end, kinds.arterial, eastWest, fixed, yaw, skipFly, add, asphalt)
+    const insetA = crossInset(cross, eastWest)
+    const insetB = insetA
+    const cursor = a + insetA - SIDEWALK_OVERLAP
+    const end = b - insetB + SIDEWALK_OVERLAP
+    if (end - cursor >= 4) {
+      packStraight(cursor, end, arterial, eastWest, fixed, yaw, add)
+    }
+    const asStart = a + insetA + ASPHALT_STOP
+    const asEnd = b - insetB - ASPHALT_STOP
+    if (asEnd - asStart < 3) continue
+    const mid = (asStart + asEnd) * 0.5
+    const ax = eastWest ? mid : fixed
+    const az = eastWest ? fixed : mid
+    asphalt.push({
+      x: ax,
+      z: az,
+      y: terrainHeight(ax, az) + PAVEMENT - ASPHALT_H * 0.5,
+      yaw,
+      sy: asEnd - asStart,
+    })
   }
 }
 
@@ -294,65 +286,24 @@ function packStraight(
   eastWest: boolean,
   fixed: number,
   yaw: number,
-  skipFly: boolean,
   add: (tile: Tile, pose: Pose) => void,
-  asphalt: Pose[],
 ): void {
-  const span = end - cursor
   const len = along(tile)
-  const n = Math.max(1, Math.round(span / len))
-  const step = span / n
-  for (let i = 0; i < n; i++) {
-    const at = cursor + (i + 0.5) * step
-    if (skipFly && Math.abs(at - FLY_Z) < FLY_CLEAR) continue
+  const step = len * 0.88
+  const first = cursor + len * 0.5
+  const last = end - len * 0.5
+  const positions: number[] = []
+  if (last - first < 0.8) {
+    positions.push((cursor + end) * 0.5)
+  } else {
+    for (let at = first; at < last - 0.15; at += step) positions.push(at)
+    const prev = positions[positions.length - 1]
+    if (prev === undefined || last - prev > 1.1) positions.push(last)
+    else positions[positions.length - 1] = last
+  }
+  for (const at of positions) {
     if (eastWest) add(tile, { x: at, z: fixed, yaw })
     else add(tile, { x: fixed, z: at, yaw })
-    const ax = eastWest ? at : fixed
-    const az = eastWest ? fixed : at
-    asphalt.push({
-      x: ax,
-      z: az,
-      y: terrainHeight(ax, az) + PAVEMENT - ASPHALT_H * 0.5,
-      yaw,
-      sy: step + 0.55,
-    })
-  }
-}
-
-function placeFlyover(
-  add: (tile: Tile, pose: Pose) => void,
-  pieces: { ramp: Tile; bridge: Tile },
-): void {
-  const bridgeLen = along(pieces.bridge)
-  const rampLen = pieces.ramp.sizeZ
-  const ground = terrainHeight(FLY_X, FLY_Z)
-  const lift = 2.55
-  const deck = lift + pieces.bridge.sizeY - 0.4
-  add(pieces.bridge, { x: FLY_X, z: FLY_Z, y: ground + lift, yaw: 0 })
-  const offset = bridgeLen * 0.52 + rampLen * 0.5
-  const sy = Math.max(0.35, deck / Math.max(pieces.ramp.sizeY, 0.2))
-  add(pieces.ramp, { x: FLY_X, z: FLY_Z - offset, y: ground, yaw: pieces.ramp.highYaw, sy })
-  add(pieces.ramp, { x: FLY_X, z: FLY_Z + offset, y: ground, yaw: pieces.ramp.highYaw + Math.PI, sy })
-}
-
-function addFlyoverPiers(obstacles: Aabb[]): void {
-  const w = ROAD_HALF + 1.4
-  const inset = 8.6
-  const piers = [
-    { x: FLY_X - w, z: FLY_Z - inset },
-    { x: FLY_X + w, z: FLY_Z - inset },
-    { x: FLY_X - w, z: FLY_Z + inset },
-    { x: FLY_X + w, z: FLY_Z + inset },
-  ]
-  for (const p of piers) {
-    obstacles.push({
-      minX: p.x - 0.55,
-      maxX: p.x + 0.55,
-      minZ: p.z - 0.55,
-      maxZ: p.z + 0.55,
-      minY: 0,
-      maxY: 2.8,
-    })
   }
 }
 
@@ -404,10 +355,6 @@ function layoutLamps(lines: number[]): Pose[] {
     if (!ARTERIAL.has(z)) continue
     let side = 1
     for (let x = -reach; x <= reach; x += LAMP_STEP) {
-      if (Math.abs(x - FLY_X) < 18 && Math.abs(z - FLY_Z) < 22) {
-        side *= -1
-        continue
-      }
       out.push({
         x,
         z: z + side * LAMP_SIDE,
@@ -421,10 +368,6 @@ function layoutLamps(lines: number[]): Pose[] {
     if (!ARTERIAL.has(x)) continue
     let side = 1
     for (let z = -reach; z <= reach; z += LAMP_STEP) {
-      if (x === FLY_X && Math.abs(z - FLY_Z) < ROAD_STEP * 0.55) {
-        side *= -1
-        continue
-      }
       if (Math.abs(distToEven(z, LAMP_STEP)) < 4) continue
       out.push({
         x: x + side * LAMP_SIDE,
@@ -512,30 +455,7 @@ function bakeTile(obj: Object3D): Tile {
     sizeX,
     sizeZ,
     sizeY,
-    highYaw: slopeHighYaw(parts[0]?.geo),
   }
-}
-
-function slopeHighYaw(geo: BufferGeometry | undefined): number {
-  if (!geo) return 0
-  const pos = geo.attributes.position
-  let yPos = 0
-  let nPos = 0
-  let yNeg = 0
-  let nNeg = 0
-  for (let i = 0; i < pos.count; i++) {
-    const z = pos.getZ(i)
-    const y = pos.getY(i)
-    if (z >= 0) {
-      yPos += y
-      nPos += 1
-    } else {
-      yNeg += y
-      nNeg += 1
-    }
-  }
-  if (!nPos || !nNeg) return 0
-  return yPos / nPos >= yNeg / nNeg ? 0 : Math.PI
 }
 
 function bakeLamp(root: Object3D): { parts: TilePart[]; scale: number; bulbY: number } {

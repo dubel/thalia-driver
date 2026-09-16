@@ -6,6 +6,8 @@ export class Input {
   restart = false
   viewToggle = false
   lookHoldToggle = false
+  lightsToggle = false
+  hornPulse = false
 
   private readonly canvas: HTMLCanvasElement
   private armed = false
@@ -27,6 +29,8 @@ export class Input {
     this.restart = false
     this.viewToggle = false
     this.lookHoldToggle = false
+    this.lightsToggle = false
+    this.hornPulse = false
     this.mouseDx = 0
     this.mouseDy = 0
   }
@@ -54,6 +58,18 @@ export class Input {
     const toggled = this.lookHoldToggle
     this.lookHoldToggle = false
     return toggled
+  }
+
+  consumeLightsToggle(): boolean {
+    const toggled = this.lightsToggle
+    this.lightsToggle = false
+    return toggled
+  }
+
+  consumeHorn(): boolean {
+    const honk = this.hornPulse
+    this.hornPulse = false
+    return honk
   }
 
   throttle(): number {
@@ -86,7 +102,10 @@ export class Input {
       event.code === 'KeyS' ||
       event.code === 'KeyD' ||
       event.code === 'KeyV' ||
-      event.code === 'KeyF'
+      event.code === 'KeyF' ||
+      event.code === 'KeyL' ||
+      event.code === 'ShiftLeft' ||
+      event.code === 'ShiftRight'
     ) {
       event.preventDefault()
     }
@@ -96,6 +115,8 @@ export class Input {
     if (event.code === 'KeyR') this.restart = true
     if (event.code === 'KeyV' || event.key === 'v' || event.key === 'V') this.viewToggle = true
     if (event.code === 'KeyF' || event.key === 'f' || event.key === 'F') this.lookHoldToggle = true
+    if (event.code === 'KeyL' || event.key === 'l' || event.key === 'L') this.lightsToggle = true
+    if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') this.hornPulse = true
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {

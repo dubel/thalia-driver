@@ -6,11 +6,11 @@ Single-thread `requestAnimationFrame` loop in `Game.loop`. No ECS, React, or sep
 main.ts
   new Game(canvas, hud).start()
     Arena (lot, atmosphere, curb)
-    load Thalia + street pack + lamp GLBs
+    load Thalia + street pack + lamp GLBs + SFX
     player Car
     hud.readyToPlay
-    beginPlay (pointer lock)
-    loop → update (drive, atmosphere.tick) → render
+    beginPlay (pointer lock + audio unlock)
+    loop → update (drive, atmosphere.tick, audio) → render
 ```
 
 ## Coordinates
@@ -27,9 +27,12 @@ main.ts
 - `stripJunk` — cameras/lights from the GLB.
 - `normalizeModel` — scale to `targetLength` (**4.26 m**), **set Y so the underside is at 0**. Afterwards only `position.y += …`, never `position.set(x, y, z)` (that wipes Y).
 - If the mesh is longer on X than Z, yaw the visual −90° so hull forward is +Z.
-- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center.
+- Wheels `roda1`–`roda4` get a steer group + spin pivot at the bounding-box center. The steering wheel mesh is found by bbox (cabin plastic near `cockpitEye`) and yaws with `steerAngle`.
+- `L` toggles head / tail emissive plus two SpotLights per lamp that throw a cone along +Z.
 
-Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse yaw is the same as the tank hull.
+Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse yaw is the same as the tank hull. `Shift` honks. Diesel loop plays while moving.
+
+Weather SFX (rain, thunder, birds) live in `audio.ts`, copied from Karaluch. `?fps=true` / `?fps=false` shows or hides the overlay counter.
 
 ## Camera
 

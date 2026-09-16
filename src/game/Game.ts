@@ -12,6 +12,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { Arena, configureRenderer } from './Arena'
 import { FollowCamera } from './camera'
 import { ARENA_HALF, LAMP_URL, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS, STREET_URL } from './config'
+import { GameAudio, warmAudioFromGesture } from './audio'
 import { Input } from './input'
 import { Car } from './Car'
 import type { Hud } from '../ui/hud'
@@ -26,6 +27,7 @@ export class Game {
   private arena!: Arena
   private player!: Car
   private readonly cabinLight = new PointLight(0xfff1dc, 0, 2.6)
+  private readonly audio = new GameAudio()
   private playing = false
   private fpsFrames = 0
   private fpsAcc = 0
@@ -62,6 +64,7 @@ export class Game {
         loader.loadAsync(PLAYER_CAR.url),
         loader.loadAsync(STREET_URL),
         loader.loadAsync(LAMP_URL),
+        this.audio.load(),
       ])
     } catch (error) {
       throw new Error(`GLB: ${error instanceof Error ? error.message : String(error)}`)
@@ -80,6 +83,7 @@ export class Game {
     this.player.sitOnTerrain()
     this.cameraRig.reset(this.player)
     this.hud.readyToPlay()
+    if (SHOW_FPS) this.hud.setFps(0)
     this.loop()
   }
 
@@ -88,6 +92,8 @@ export class Game {
     this.hud.hideOverlay()
     this.input.arm()
     this.input.lockPointer()
+    warmAudioFromGesture()
+    void this.audio.unlock()
   }
 
   private loop = (): void => {
@@ -113,6 +119,8 @@ export class Game {
     if (this.input.consumeLookHoldToggle() && this.cameraRig.mode === 'cockpit') {
       this.cameraRig.toggleLookHold()
     }
+    if (this.input.consumeLightsToggle() && this.player) this.player.toggleLights()
+    if (this.input.consumeHorn()) void this.audio.unlock().then(() => this.audio.horn())
     if (this.playing && this.player) {
       if (this.cameraRig.mode === 'chase') this.player.nudgeYaw(-mouse.dx * 0.0046)
       this.player.drive(
@@ -124,6 +132,9 @@ export class Game {
         ARENA_HALF,
       )
       this.hud.setSpeed(Math.abs(this.player.speed) * 3.6)
+      this.audio.setMotion(Math.abs(this.player.speed) / this.player.config.maxSpeed)
+    } else {
+      this.audio.setMotion(0)
     }
 
     if (this.player) {
@@ -131,9 +142,14 @@ export class Game {
       this.arena.tick(dt, this.cameraRig.camera, this.player.position)
       const night = this.arena.atmosphere.night
       const day = 1 - night
+      this.player.syncLights(night)
       this.scene.environmentIntensity = 0.04 + 0.82 * day ** 1.55
       this.renderer.toneMappingExposure = 0.36 + 0.66 * day
       this.hud.setAtmosphere(this.arena.atmosphere.label)
+      this.audio.setWeather(this.arena.atmosphere.rain, this.arena.atmosphere.wind)
+      const thunder = this.arena.atmosphere.consumeThunder()
+      if (thunder) this.audio.thunder(thunder)
+      this.audio.tickAmbience(dt, this.arena.atmosphere.clockHour, this.arena.atmosphere.rain)
       this.cameraRig.update(this.player, dt, this.arena.blockerIndex, mouse.dx, mouse.dy)
     }
   }

@@ -24,9 +24,11 @@ export type CarConfig = {
 }
 
 function parseFlag(value: string | null): boolean {
-  if (!value) return false
+  if (value === null) return false
   const n = value.trim().toLowerCase()
-  return n === '1' || n === 'true' || n === 'yes'
+  if (n === '' || n === '1' || n === 'true' || n === 'yes') return true
+  if (n === '0' || n === 'false' || n === 'no') return false
+  return false
 }
 
 const query = new URLSearchParams(window.location.search)
@@ -41,9 +43,6 @@ export const ROAD_STEP = 80
 export const ROAD_HALF = 5.4
 export const STREET_URL = new URL('../../assets/old_street_pack.glb', import.meta.url).href
 export const LAMP_URL = new URL('../../assets/street_lamp.glb', import.meta.url).href
-/** NS arterial that ramps over the east–west road at the origin of this crossing. */
-export const FLY_X = 160
-export const FLY_Z = 0
 
 /** 2006 Renault Thalia / Symbol / Clio sedan, overall length ~4.26 m. */
 export const THALIA_LENGTH = 4.26

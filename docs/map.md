@@ -15,14 +15,16 @@ Top-down, **top of this doc = +Z = north**.
                     south
 ```
 
-Playable square: **±475 m** (`ARENA_HALF`). Surface is 8× Karaluch’s 336 m lot. Between streets the ground rolls a few metres; pavement follows a gentler bed so the car sits on the tiles.
+Playable square: **±475 m** (`ARENA_HALF`). Surface is 8× Karaluch’s 336 m lot. The city grid is nearly flat; off-road ground ripples a few tens of centimetres.
 
 ## Roads
 
-City grid, centerlines every **80 m** (`ROAD_STEP`). Pieces come from `assets/old_street_pack.glb`: marked arterials (`Cube`) and 4-way tiles at crossings. Straight pack tiles are sidewalk frames; a textured asphalt ribbon (cloned from the pack albedo) fills the carriageway so the pavement does not drop to grass.
+City grid, centerlines every **80 m** (`ROAD_STEP`). Pieces come from `assets/old_street_pack.glb`:
 
-**Flyover** at **x = 160, z = 0**: the north–south arterial ramps onto a lifted pack bridge over the east–west road. Drive NS to stay on the deck; drive EW to pass under the opening. Sit height is heading-dependent so both are driveable. Four pier AABBs sit beside the underpass, not in the lanes.
+- **`Cube.002`** at every crossing — 4-way with curved corner sidewalks.
+- **`Cube`** between crossings — sidewalk frames, overlapped into the plus so the curve meets the straight.
+- Textured asphalt ribbon fills the `Cube` carriageway and **stops short** of `Cube.002`’s inner curve so it does not hit the far curb.
 
-Street lamps (`assets/street_lamp.glb`) line the marked arterials (`x` or `z` in {0, ±160, ±320}). At dusk they go emissive; four cheap point lights hop to the nearest poles — no per-lamp lights.
+Street lamps (`assets/street_lamp.glb`) line the marked arterials (`x` or `z` in {0, ±160, ±320}). At dusk they go emissive; six cheap point lights hop to the nearest poles (brighter / longer reach than the first pass).
 
 A low curb still marks the rim; driving past it is blocked.

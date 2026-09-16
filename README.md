@@ -23,6 +23,8 @@ Live: [https://dubel.dev/thalia-driver/](https://dubel.dev/thalia-driver/)
 | Space | handbrake |
 | V | chase / cockpit |
 | F | cockpit: toggle look-hold (off = spring back) |
+| L | headlights / taillights |
+| Shift | horn |
 | R | reset to spawn |
 
 ## URL flags
@@ -36,7 +38,7 @@ Boolean values: `true` / `1` / `yes`. Without `fixed`, `hour` / `weather` / `mis
 | `mist` | force fog on / off |
 | `fixed` | freeze whatever you also passed (`hour`, `weather`, `mist`) |
 | `pauseday` | freeze the clock |
-| `fps=true` | FPS counter |
+| `fps=true` / `fps=false` | FPS counter on / off |
 | `describe=true` | label above the car |
 
 Examples:
@@ -45,6 +47,7 @@ Examples:
 http://127.0.0.1:5173/thalia-driver/?hour=22&weather=rain&fixed=true
 http://127.0.0.1:5173/thalia-driver/?hour=16&weather=storm&fixed=true
 http://127.0.0.1:5173/thalia-driver/?fps=true
+http://127.0.0.1:5173/thalia-driver/?fps=false
 ```
 
 ## Agent docs
