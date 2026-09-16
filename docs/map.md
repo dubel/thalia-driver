@@ -25,6 +25,6 @@ Orthogonal city grid, centerlines every **80 m** (`ROAD_STEP`). Only axis-aligne
 - **`Cube`** between crossings, NS and EW (yaw 0 / 90°) — two parallel sidewalks, same 10.06 m width.
 - Carriageway uses the pack’s glossy `Materiais.*` asphalt (cracked dark grey), not the sidewalk concrete.
 
-Street lamps (`assets/street_lamp.glb`) line the marked arterials (`x` or `z` in {0, ±160, ±320}). At dusk they go emissive; two cheap point lights hop to the nearest poles.
+Street lamps (`assets/street_lamp.glb`) sit on the grass just outside every sidewalk (~5.85 m off the centerline), every 32 m, skipped at crossings so poles never land in the perpendicular carriageway or past the last grid line. At dusk they go emissive; two cheap point lights hop to the nearest poles.
 
 A low curb still marks the rim; driving past it is blocked.

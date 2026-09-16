@@ -20,11 +20,27 @@ const IDLE_RPM = 850
 const RUBY = '#f06a28'
 const RUBY_DIM = '#9a3e18'
 const RUBY_GLOW = 'rgba(240, 90, 28, 0.55)'
-const GREY = '#c8c4bc'
+const GREY = '#3c3a38'
+const GREY_NIGHT = '#161514'
+const NEEDLE_DIM = '#454240'
+const NEEDLE_NIGHT = '#1c1b1a'
 const GREEN = '#3dff6a'
 
 function clamp(n: number, a: number, b: number): number {
   return Math.min(b, Math.max(a, n))
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const k = clamp(t, 0, 1)
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const ch = (shift: number): number => {
+    const ca = (pa >> shift) & 0xff
+    const cb = (pb >> shift) & 0xff
+    return Math.round(ca + (cb - ca) * k)
+  }
+  const n = (ch(16) << 16) | (ch(8) << 8) | ch(0)
+  return `#${n.toString(16).padStart(6, '0')}`
 }
 
 /** 0 at ~7 o'clock, clockwise 270° — Clio II / Thalia Jaeger sweep. */
@@ -51,6 +67,7 @@ export class Cluster {
   private odoKm = 12840
   private tripKm = 0
   private lit = false
+  private night = 0
 
   constructor(visual: Object3D, eye: { x: number; y: number; z: number }) {
     this.canvas = document.createElement('canvas')
@@ -84,7 +101,7 @@ export class Cluster {
     this.map.needsUpdate = true
   }
 
-  tick(speedMs: number, lightsOn: boolean, dt: number): void {
+  tick(speedMs: number, lightsOn: boolean, dt: number, night = 0): void {
     const kmh = Math.abs(speedMs) * 3.6
     const rpm = IDLE_RPM + kmh * 38
     const tach = rpm / 100
@@ -95,6 +112,7 @@ export class Cluster {
     this.tripKm += (kmh * dt) / 3600
     this.odoKm += (kmh * dt) / 3600
     this.lit = lightsOn
+    this.night = night
     this.paint()
     this.map.needsUpdate = true
   }
@@ -158,14 +176,18 @@ export class Cluster {
   ): void {
     const ctx = this.ctx
     const lit = this.lit
+    const dusk = this.night
+    const ink = lit ? RUBY : mixHex(GREY, GREY_NIGHT, dusk)
+    const inkSoft = lit ? RUBY_DIM : mixHex('#2a2928', '#121110', dusk)
+    const needle = lit ? '#ff4a18' : mixHex(NEEDLE_DIM, NEEDLE_NIGHT, dusk)
     ctx.save()
     ctx.beginPath()
     ctx.arc(cx, cy, r + 8, 0, Math.PI * 2)
-    ctx.fillStyle = lit ? '#0e0b09' : '#0c0c0c'
+    ctx.fillStyle = lit ? '#0e0b09' : mixHex('#121212', '#080808', dusk)
     ctx.fill()
     ctx.beginPath()
     ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.fillStyle = lit ? '#161210' : '#141414'
+    ctx.fillStyle = lit ? '#161210' : mixHex('#141414', '#0a0a0a', dusk)
     ctx.fill()
     if (lit) {
       const glow = ctx.createRadialGradient(cx, cy, r * 0.15, cx, cy, r)
@@ -176,8 +198,6 @@ export class Cluster {
       ctx.fill()
     }
 
-    const ink = lit ? RUBY : GREY
-    const inkSoft = lit ? RUBY_DIM : '#4a4844'
     for (let v = 0; v <= spec.max; v += spec.step / 2) {
       const u = v / spec.max
       const a = sweepAngle(u)
@@ -188,7 +208,7 @@ export class Cluster {
       ctx.beginPath()
       ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
       ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer)
-      ctx.strokeStyle = red ? (lit ? '#ff3a18' : '#7a2a1c') : major ? ink : inkSoft
+      ctx.strokeStyle = red ? (lit ? '#ff3a18' : mixHex('#4a2018', '#1a0e0c', dusk)) : major ? ink : inkSoft
       ctx.lineWidth = major ? 3.2 : 1.4
       ctx.stroke()
     }
@@ -209,7 +229,7 @@ export class Cluster {
     }
     ctx.shadowBlur = 0
     ctx.font = '500 13px "Segoe UI", system-ui, sans-serif'
-    ctx.fillStyle = lit ? '#c45a32' : '#5a5854'
+    ctx.fillStyle = lit ? '#c45a32' : mixHex('#3a3836', '#141312', dusk)
     ctx.fillText(spec.caption, cx, cy + r * 0.22)
 
     if (spec.lcd) {
@@ -217,14 +237,14 @@ export class Cluster {
       const boxH = 44
       const bx = cx - boxW / 2
       const by = cy + 28
-      ctx.fillStyle = lit ? '#2a0e06' : '#0a0a0a'
+      ctx.fillStyle = lit ? '#2a0e06' : '#080808'
       ctx.fillRect(bx, by, boxW, boxH)
-      ctx.strokeStyle = lit ? '#5a2210' : '#222'
+      ctx.strokeStyle = lit ? '#5a2210' : '#161616'
       ctx.lineWidth = 1
       ctx.strokeRect(bx + 0.5, by + 0.5, boxW - 1, boxH - 1)
       ctx.font = '600 15px ui-monospace, "Cascadia Mono", monospace'
       ctx.textAlign = 'right'
-      ctx.fillStyle = lit ? '#ff7a30' : '#1a120c'
+      ctx.fillStyle = lit ? '#ff7a30' : mixHex('#201810', '#0c0a08', dusk)
       if (lit) {
         ctx.shadowColor = 'rgba(255, 90, 20, 0.65)'
         ctx.shadowBlur = 8
@@ -236,7 +256,7 @@ export class Cluster {
     }
 
     if (spec.battery) {
-      ctx.fillStyle = '#4a1410'
+      ctx.fillStyle = mixHex('#4a1410', '#1a0808', dusk)
       ctx.beginPath()
       ctx.roundRect(cx + r * 0.42, cy - 10, 18, 14, 2)
       ctx.fill()
@@ -245,7 +265,7 @@ export class Cluster {
     if (spec.lights) {
       const gx = cx + r * 0.78
       const gy = cy + 4
-      ctx.fillStyle = this.lit ? GREEN : '#1a2a1a'
+      ctx.fillStyle = this.lit ? GREEN : mixHex('#1a2a1a', '#0c100c', dusk)
       ctx.beginPath()
       ctx.arc(gx, gy, 6, 0, Math.PI * 2)
       ctx.fill()
@@ -255,7 +275,7 @@ export class Cluster {
         ctx.fill()
         ctx.shadowBlur = 0
       }
-      ctx.strokeStyle = this.lit ? '#b8ffc8' : '#333'
+      ctx.strokeStyle = this.lit ? '#b8ffc8' : mixHex('#222', '#111', dusk)
       ctx.lineWidth = 1.6
       ctx.beginPath()
       ctx.arc(gx - 7, gy, 7, -0.7, 0.7)
@@ -264,8 +284,8 @@ export class Cluster {
 
     const a = sweepAngle(t)
     const len = r * 0.82
-    ctx.strokeStyle = lit ? '#ff4a18' : '#c8c4bc'
-    ctx.fillStyle = lit ? '#ff4a18' : '#c8c4bc'
+    ctx.strokeStyle = needle
+    ctx.fillStyle = needle
     if (lit) {
       ctx.shadowColor = 'rgba(255, 50, 10, 0.8)'
       ctx.shadowBlur = 14
@@ -279,9 +299,9 @@ export class Cluster {
     ctx.shadowBlur = 0
     ctx.beginPath()
     ctx.arc(cx, cy, 9, 0, Math.PI * 2)
-    ctx.fillStyle = lit ? '#2a0c08' : '#1a1a1a'
+    ctx.fillStyle = lit ? '#2a0c08' : mixHex('#161616', '#0a0a0a', dusk)
     ctx.fill()
-    ctx.strokeStyle = lit ? '#ff5a20' : '#888'
+    ctx.strokeStyle = lit ? '#ff5a20' : mixHex('#3a3836', '#181716', dusk)
     ctx.lineWidth = 2
     ctx.stroke()
     ctx.restore()

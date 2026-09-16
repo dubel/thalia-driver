@@ -12,9 +12,9 @@ import {
   Scene,
 } from 'three'
 import type { Aabb } from './collision'
-import { ARENA_HALF, ROAD_STEP } from './config'
+import { ARENA_HALF, ROAD_HALF, ROAD_STEP } from './config'
 import { stripJunk } from './rig'
-import { terrainHeight } from './terrain'
+import { distToGrid, terrainHeight } from './terrain'
 
 const _dummy = new Object3D()
 const _box = new Box3()
@@ -31,9 +31,10 @@ const TILE_NAMES = new Set([
   'Cube.004',
 ])
 
-const ARTERIAL = new Set([-320, -160, 0, 160, 320])
-const LAMP_STEP = 28
-const LAMP_SIDE = 6.15
+const LAMP_STEP = 32
+/** Outer sidewalk of Cube is ~5.03 m; sit on the grass just off the curb. */
+const LAMP_SIDE = 5.85
+const LAMP_CROSS_CLEAR = ROAD_HALF + 2.4
 const GLOW_LIGHTS = 2
 const LAMP_DISTANCE = 58
 /** Inner hole of Cube / Cube.001 is 6 m. Stay inside the sidewalks. */
@@ -343,40 +344,38 @@ function stampPoses(
 
 function layoutLamps(lines: number[]): Pose[] {
   const out: Pose[] = []
-  const reach = ARENA_HALF - 8
+  const first = lines[0]
+  const last = lines[lines.length - 1]
+  if (first === undefined || last === undefined) return out
+
+  const place = (along: number, fixed: number, eastWest: boolean, side: number): void => {
+    if (along < first + 3 || along > last - 3) return
+    if (distToGrid(along, ROAD_STEP) < LAMP_CROSS_CLEAR) return
+    const x = eastWest ? along : fixed + side * LAMP_SIDE
+    const z = eastWest ? fixed + side * LAMP_SIDE : along
+    out.push({
+      x,
+      z,
+      y: terrainHeight(x, z),
+      yaw: eastWest ? (side > 0 ? -Math.PI / 2 : Math.PI / 2) : side > 0 ? Math.PI : 0,
+    })
+  }
+
   for (const z of lines) {
-    if (!ARTERIAL.has(z)) continue
     let side = 1
-    for (let x = -reach; x <= reach; x += LAMP_STEP) {
-      out.push({
-        x,
-        z: z + side * LAMP_SIDE,
-        y: terrainHeight(x, z + side * LAMP_SIDE),
-        yaw: side > 0 ? -Math.PI / 2 : Math.PI / 2,
-      })
+    for (let x = first; x <= last + 0.01; x += LAMP_STEP) {
+      place(x, z, true, side)
       side *= -1
     }
   }
   for (const x of lines) {
-    if (!ARTERIAL.has(x)) continue
     let side = 1
-    for (let z = -reach; z <= reach; z += LAMP_STEP) {
-      if (Math.abs(distToEven(z, LAMP_STEP)) < 4) continue
-      out.push({
-        x: x + side * LAMP_SIDE,
-        z,
-        y: terrainHeight(x + side * LAMP_SIDE, z),
-        yaw: side > 0 ? Math.PI : 0,
-      })
+    for (let z = first; z <= last + 0.01; z += LAMP_STEP) {
+      place(z, x, false, side)
       side *= -1
     }
   }
   return out
-}
-
-function distToEven(v: number, step: number): number {
-  const t = ((v % step) + step) % step
-  return Math.min(t, step - t)
 }
 
 function nearestLamps(

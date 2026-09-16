@@ -236,7 +236,6 @@ export class Car {
     this.vz = dt > 1e-5 ? (this.object.position.z - prevZ) / dt : 0
     this.sitOnTerrain(dt)
     this.spinWheels(dt)
-    this.cluster.tick(this.speed, this.lightsOn, dt)
   }
 
   nudgeYaw(delta: number): void {

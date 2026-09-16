@@ -141,6 +141,7 @@ export class Game {
       const night = this.arena.atmosphere.night
       const day = 1 - night
       this.player.syncLights(night)
+      this.player.cluster.tick(this.player.speed, this.player.lightsOn, dt, night)
       this.scene.environmentIntensity = 0.04 + 0.82 * day ** 1.55
       this.renderer.toneMappingExposure = 0.36 + 0.66 * day
       this.hud.setAtmosphere(this.arena.atmosphere.label)
