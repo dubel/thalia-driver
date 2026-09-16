@@ -168,7 +168,7 @@ function recodePaint(root: Object3D, config: CarConfig): void {
       mat.color.setHex(config.paintColor ?? 0xc6ccd2)
       if (config.paintMetalness !== undefined) mat.metalness = config.paintMetalness
       if (config.paintRoughness !== undefined) mat.roughness = config.paintRoughness
-      mat.envMapIntensity = 1.25
+      mat.envMapIntensity = 0.72
       mat.needsUpdate = true
     }
   })

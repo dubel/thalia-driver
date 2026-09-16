@@ -179,6 +179,8 @@ export class Atmosphere {
   wetness = 0
   rain = 0
   wind = 0.5
+  /** 0 at day, 1 in full night — used to wake street lamps. */
+  night = 0
   private readonly scene: Scene
   private readonly windClock: WindClock
   private readonly freeze: boolean
@@ -315,6 +317,7 @@ export class Atmosphere {
     const sunAlt = bodyDir(this.hour, SUN_DEC, _sunDir)
     const moonAlt = bodyDir(this.hour + 13.2, MOON_DEC, _moonDir)
     const night = smooth(-0.02, -0.28, sunAlt)
+    this.night = night
     const day = 1 - night
     const golden = Math.exp(-(((sunAlt - 0.06) / 0.12) ** 2)) * (1 - night * 0.7)
     const twilight = smooth(0.18, -0.04, sunAlt) * smooth(-0.38, -0.02, sunAlt)

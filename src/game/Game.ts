@@ -11,7 +11,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { Arena, configureRenderer } from './Arena'
 import { FollowCamera } from './camera'
-import { ARENA_HALF, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS, STREET_URL } from './config'
+import { ARENA_HALF, LAMP_URL, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS, STREET_URL } from './config'
 import { Input } from './input'
 import { Car } from './Car'
 import type { Hud } from '../ui/hud'
@@ -37,6 +37,7 @@ export class Game {
     configureRenderer(this.renderer)
     const pmrem = new PMREMGenerator(this.renderer)
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+    this.scene.environmentIntensity = 0.85
     pmrem.dispose()
     this.resize()
     window.addEventListener('resize', () => this.resize())
@@ -55,15 +56,17 @@ export class Game {
     const loader = new GLTFLoader(manager)
     let gltf
     let streetGltf
+    let lampGltf
     try {
-      ;[gltf, streetGltf] = await Promise.all([
+      ;[gltf, streetGltf, lampGltf] = await Promise.all([
         loader.loadAsync(PLAYER_CAR.url),
         loader.loadAsync(STREET_URL),
+        loader.loadAsync(LAMP_URL),
       ])
     } catch (error) {
       throw new Error(`GLB: ${error instanceof Error ? error.message : String(error)}`)
     }
-    this.arena.addRoads(streetGltf.scene)
+    this.arena.addStreets(streetGltf.scene, lampGltf.scene)
     this.player = new Car(
       gltf.scene,
       PLAYER_CAR,
@@ -126,6 +129,10 @@ export class Game {
     if (this.player) {
       this.cabinLight.intensity = this.cameraRig.mode === 'cockpit' ? 0.42 : 0
       this.arena.tick(dt, this.cameraRig.camera, this.player.position)
+      const night = this.arena.atmosphere.night
+      const day = 1 - night
+      this.scene.environmentIntensity = 0.04 + 0.82 * day ** 1.55
+      this.renderer.toneMappingExposure = 0.36 + 0.66 * day
       this.hud.setAtmosphere(this.arena.atmosphere.label)
       this.cameraRig.update(this.player, dt, this.arena.blockerIndex, mouse.dx, mouse.dy)
     }

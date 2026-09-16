@@ -12,7 +12,7 @@ import {
 import { DESCRIBE, type CarConfig } from './config'
 import { applyCarRig, type WheelRig } from './rig'
 import { clampToBounds, collidesAny, type ObstacleSet } from './collision'
-import { terrainHeight } from './terrain'
+import { surfaceHeight } from './terrain'
 
 const _forward = new Vector3()
 
@@ -238,15 +238,15 @@ export class Car {
     const cos = Math.cos(yaw)
     const along = this.halfLength * 0.88
     const across = this.halfWidth * 0.82
-    const hFR = terrainHeight(x + sin * along + cos * across, z + cos * along - sin * across)
-    const hFL = terrainHeight(x + sin * along - cos * across, z + cos * along + sin * across)
-    const hBR = terrainHeight(x - sin * along + cos * across, z - cos * along - sin * across)
-    const hBL = terrainHeight(x - sin * along - cos * across, z - cos * along + sin * across)
+    const hFR = surfaceHeight(x + sin * along + cos * across, z + cos * along - sin * across, yaw)
+    const hFL = surfaceHeight(x + sin * along - cos * across, z + cos * along + sin * across, yaw)
+    const hBR = surfaceHeight(x - sin * along + cos * across, z - cos * along - sin * across, yaw)
+    const hBL = surfaceHeight(x - sin * along - cos * across, z - cos * along + sin * across, yaw)
     const hF = (hFR + hFL) * 0.5
     const hB = (hBR + hBL) * 0.5
     const hR = (hFR + hBR) * 0.5
     const hL = (hFL + hBL) * 0.5
-    const hC = terrainHeight(x, z)
+    const hC = surfaceHeight(x, z, yaw)
     this.object.position.y = Math.min(hC, (hFR + hFL + hBR + hBL) * 0.25)
     this.terrainPitch = clampTilt(Math.atan2(hB - hF, along * 2))
     this.terrainRoll = clampTilt(Math.atan2(hL - hR, across * 2))

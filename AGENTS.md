@@ -24,8 +24,8 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/config.ts` | URL flags, spawn, speeds, GLB URL |
 | `src/game/Arena.ts` | lot, atmosphere lights, curb, street grid |
 | `src/game/atmosphere.ts` | day cycle, weather, rain, storm |
-| `src/game/roads.ts` | instanced wet-pavement tiles |
-| `src/game/terrain.ts` | gentle heightfield, flattened under roads |
+| `src/game/streets.ts` | old-street pack tiles, flyover, night lamps |
+| `src/game/terrain.ts` | hills, road bed, flyover sit height |
 | `src/game/rig.ts` | `normalizeModel`, wheel pivots, cabin trim |
 | `src/game/Car.ts` | arcade hull physics, sit-on-terrain |
 | `src/game/camera.ts` | chase follow + cockpit look (`F` hold) |

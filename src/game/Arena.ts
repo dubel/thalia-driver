@@ -16,7 +16,7 @@ import {
 import { AabbIndex, type Aabb } from './collision'
 import { ARENA_HALF } from './config'
 import { Atmosphere, type WindClock } from './atmosphere'
-import { addStreetGrid } from './roads'
+import { addStreetCity } from './streets'
 import { displaceTerrain, terrainHeight } from './terrain'
 
 const _dummy = new Object3D()
@@ -35,13 +35,15 @@ export class Arena {
   }
   private readonly scene: Scene
   private readonly groundMat: MeshStandardMaterial
-  private streetMat: MeshStandardMaterial | null = null
+  private readonly groundBase = 0x6e6c5e
+  private streetMats: MeshStandardMaterial[] = []
+  private streets: ReturnType<typeof addStreetCity> | null = null
 
   constructor(scene: Scene) {
     this.scene = scene
     this.atmosphere = new Atmosphere(scene, this.wind)
 
-    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 256, 256)
+    const groundGeo = new PlaneGeometry(ARENA_HALF * 2.18, ARENA_HALF * 2.18, 280, 280)
     groundGeo.rotateX(-Math.PI / 2)
     displaceTerrain(groundGeo)
     this.groundMat = makeLotMaterial()
@@ -52,8 +54,9 @@ export class Arena {
     this.addCurb()
   }
 
-  addRoads(pack: Object3D): void {
-    this.streetMat = addStreetGrid(this.scene, pack).material
+  addStreets(pack: Object3D, lamps: Object3D): void {
+    this.streets = addStreetCity(this.scene, pack, lamps, this.obstacles)
+    this.streetMats = this.streets.materials
   }
 
   indexCollision(): void {
@@ -64,11 +67,18 @@ export class Arena {
   tick(dt: number, camera: PerspectiveCamera, follow: Vector3): void {
     this.atmosphere.tick(dt, camera, follow)
     const wet = this.atmosphere.wetness
+    const night = this.atmosphere.night
     this.groundMat.roughness = 0.94 - wet * 0.28
     this.groundMat.metalness = 0.02 + wet * 0.08
-    if (this.streetMat) {
-      this.streetMat.roughness = 0.42 - wet * 0.22
-      this.streetMat.metalness = 0.04 + wet * 0.12
+    this.groundMat.color.setHex(this.groundBase).multiplyScalar(1 - night * 0.72)
+    for (const mat of this.streetMats) {
+      mat.roughness = 0.7 - wet * 0.2
+      mat.metalness = 0.03 + wet * 0.06
+      mat.envMapIntensity = 0.08 + (1 - night) * 0.22
+    }
+    if (this.streets) {
+      this.streets.setNight(this.atmosphere.night)
+      this.streets.tickLamps(follow.x, follow.z)
     }
   }
 
@@ -118,7 +128,7 @@ export class Arena {
 export function configureRenderer(renderer: import('three').WebGLRenderer): void {
   renderer.outputColorSpace = SRGBColorSpace
   renderer.toneMapping = ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.08
+  renderer.toneMappingExposure = 1.02
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -127,7 +137,7 @@ export function configureRenderer(renderer: import('three').WebGLRenderer): void
 function makeLotMaterial(): MeshStandardMaterial {
   const map = makeLotMap()
   return new MeshStandardMaterial({
-    color: 0xb7b3a4,
+    color: 0x6e6c5e,
     map,
     roughness: 0.92,
     metalness: 0.03,

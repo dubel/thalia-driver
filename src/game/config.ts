@@ -37,11 +37,13 @@ export const DESCRIBE = parseFlag(query.get('describe'))
 export const ARENA_HALF = 475
 /** City-grid spacing between road centerlines (m). */
 export const ROAD_STEP = 80
-/** Half-width of a paved corridor, matching the scaled street tile. */
-export const ROAD_HALF = 4.6
-export const STREET_WIDTH = 9
-export const STREET_URL = new URL('../../assets/modular_street__pavement_wet_lp.glb', import.meta.url)
-  .href
+/** Half-width of a paved corridor (old-street pack tiles are ~10 m). */
+export const ROAD_HALF = 5.4
+export const STREET_URL = new URL('../../assets/old_street_pack.glb', import.meta.url).href
+export const LAMP_URL = new URL('../../assets/street_lamp.glb', import.meta.url).href
+/** NS arterial that ramps over the east–west road at the origin of this crossing. */
+export const FLY_X = 160
+export const FLY_Z = 0
 
 /** 2006 Renault Thalia / Symbol / Clio sedan, overall length ~4.26 m. */
 export const THALIA_LENGTH = 4.26

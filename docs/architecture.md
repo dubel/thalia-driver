@@ -6,7 +6,7 @@ Single-thread `requestAnimationFrame` loop in `Game.loop`. No ECS, React, or sep
 main.ts
   new Game(canvas, hud).start()
     Arena (lot, atmosphere, curb)
-    load Thalia + street GLBs
+    load Thalia + street pack + lamp GLBs
     player Car
     hud.readyToPlay
     beginPlay (pointer lock)
