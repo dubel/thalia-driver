@@ -28,6 +28,7 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/terrain.ts` | nearly-flat city bed, road sit height |
 | `src/game/rig.ts` | `normalizeModel`, wheel pivots, cabin trim, lights, steering wheel |
 | `src/game/Car.ts` | arcade hull physics, sit-on-terrain, headlights |
+| `src/game/cluster.ts` | procedural Clio/Thalia gauges (tacho + speedo, ruby backlight) |
 | `src/game/camera.ts` | chase follow + cockpit look (`F` hold) |
 | `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R |
 | `src/game/audio.ts` | diesel, horn, rain / thunder / birds |

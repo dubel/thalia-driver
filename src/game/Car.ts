@@ -12,6 +12,7 @@ import {
 } from 'three'
 import { DESCRIBE, type CarConfig } from './config'
 import { applyCarRig, type LightMats, type SteeringWheel, type WheelRig } from './rig'
+import { mountCluster, type Cluster } from './cluster'
 import { clampToBounds, collidesAny, type ObstacleSet } from './collision'
 import { surfaceHeight } from './terrain'
 
@@ -88,6 +89,7 @@ export class Car {
   vz = 0
   steerAngle = 0
   lightsOn = false
+  readonly cluster: Cluster
 
   private readonly spawn = new Vector3()
   private readonly spawnYaw: number
@@ -121,6 +123,7 @@ export class Car {
     })
     if (DESCRIBE) this.attachLabel()
     this.mountHeadlights()
+    this.cluster = mountCluster(rig.visual, config.cockpitEye)
     if (DESCRIBE && !this.steering) console.warn('Steering wheel mesh not found')
   }
 
@@ -233,6 +236,7 @@ export class Car {
     this.vz = dt > 1e-5 ? (this.object.position.z - prevZ) / dt : 0
     this.sitOnTerrain(dt)
     this.spinWheels(dt)
+    this.cluster.tick(this.speed, this.lightsOn, dt)
   }
 
   nudgeYaw(delta: number): void {

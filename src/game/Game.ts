@@ -135,6 +135,7 @@ export class Game {
     }
 
     if (this.player) {
+      this.hud.setCockpit(this.cameraRig.mode === 'cockpit')
       this.cabinLight.intensity = this.cameraRig.mode === 'cockpit' ? 0.42 : 0
       this.arena.tick(dt, this.cameraRig.camera, this.player.position)
       const night = this.arena.atmosphere.night

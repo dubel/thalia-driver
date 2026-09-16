@@ -35,6 +35,11 @@ export class Hud {
     if (this.speed) this.speed.textContent = `${Math.round(kmh)}`
   }
 
+  setCockpit(on: boolean): void {
+    const speedo = document.querySelector('.speedo')
+    if (speedo instanceof HTMLElement) speedo.hidden = on
+  }
+
   setFps(fps: number): void {
     if (!this.fps) return
     this.fps.hidden = false
