@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thalia Driver</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div id="hud" class="hud">
+        <div class="hud-top">
+          <div class="brand">THALIA</div>
+          <div id="fps" class="fps" hidden>0 FPS</div>
+        </div>
+        <div class="hud-bottom">
+          <div class="speedo">
+            <div id="speed" class="speed">0</div>
+            <div class="unit">km/h</div>
+          </div>
+        </div>
+      </div>
+      <div id="overlay" class="overlay">
+        <div class="overlay-card">
+          <h1>THALIA DRIVER</h1>
+          <p class="tag">Empty lot · Renault Thalia</p>
+          <p id="overlay-status" class="status">Loading car… 0%</p>
+          <ul>
+            <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive</li>
+            <li><kbd>Mouse</kbd> left/right — yaw</li>
+            <li><kbd>Space</kbd> handbrake</li>
+            <li><kbd>R</kbd> reset</li>
+          </ul>
+          <button id="play-btn" type="button" disabled>Wait for the car</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
