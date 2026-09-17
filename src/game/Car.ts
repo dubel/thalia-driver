@@ -13,6 +13,7 @@ import {
 import { DESCRIBE, type CarConfig } from './config'
 import { applyCarRig, type LightMats, type SteeringWheel, type WheelRig } from './rig'
 import { mountCluster, type Cluster } from './cluster'
+import { mountRadioLcd, type RadioLcd } from './radio'
 import { clampToBounds, collidesAny, type ObstacleSet } from './collision'
 import { surfaceHeight } from './terrain'
 
@@ -90,6 +91,7 @@ export class Car {
   steerAngle = 0
   lightsOn = false
   readonly cluster: Cluster
+  readonly radioLcd: RadioLcd
 
   private readonly spawn = new Vector3()
   private readonly spawnYaw: number
@@ -124,6 +126,7 @@ export class Car {
     if (DESCRIBE) this.attachLabel()
     this.mountHeadlights()
     this.cluster = mountCluster(rig.visual, config.cockpitEye)
+    this.radioLcd = mountRadioLcd(rig.visual, config.cockpitEye)
     if (DESCRIBE && !this.steering) console.warn('Steering wheel mesh not found')
   }
 

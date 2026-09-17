@@ -32,7 +32,7 @@ main.ts
 
 Arcade drive (Karaluch hull, NFS inertia): accelerate / brake along heading, speed-scaled steer, slide along walls, clamp to the lot. Mouse never yaws the hull — chase and cockpit both look with the mouse. `Shift` honks. Diesel loop plays while moving. Body paint + wheels cast shadows; streets and ground receive them. Cockpit cluster is two circular canvases (`cluster.ts`) seated in the stock binnacle holes: tacho left, speedo right, green sidelight telltale; ruby backlight only with `L` (unlit faces stay dim, especially at night). The middle rectangle stays free for a later fuel / trip graphic. The 2D km/h overlay hides in cockpit. Headlight cones still throw ~80 m; they aim a bit steeper so the pool on the asphalt sits closer to the hull.
 
-Weather SFX (rain, thunder, birds) live in `audio.ts`, copied from Karaluch. `?fps=true` / `?fps=false` shows or hides the overlay counter.
+Weather SFX (rain, thunder, birds) live in `audio.ts`, copied from Karaluch. `?fps=true` / `?fps=false` shows or hides the overlay counter. **Alt+R** opens a radio modal (pointer unlocks so you can click). Public HTTPS Icecast/HLS streams play through `HTMLAudio` (`radio.ts`); Trójka uses `hls.js`. The head-unit LCD (`polySurface80`) shows the game clock when OFF and the station name when live.
 
 ## Camera
 

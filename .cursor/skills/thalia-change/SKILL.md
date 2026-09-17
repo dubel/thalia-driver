@@ -39,6 +39,7 @@ description: >-
 
 - Overlay `pointer-events: none`, card `auto`, so Drive stays clickable.
 - 2D speedo is chase-only; cockpit uses the binnacle cluster.
+- Radio is Alt+R (R alone still resets). LCD on `polySurface80`: clock / station.
 
 ## Verify
 

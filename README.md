@@ -26,6 +26,7 @@ Live: [https://dubel.dev/thalia-driver/](https://dubel.dev/thalia-driver/)
 | L | headlights / taillights (also ruby cluster backlight) |
 | Shift | horn |
 | R | reset to spawn |
+| Alt+R | radio (live stations + OFF) |
 
 ## URL flags
 

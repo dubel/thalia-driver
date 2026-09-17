@@ -8,6 +8,8 @@ export class Input {
   lookHoldToggle = false
   lightsToggle = false
   hornPulse = false
+  radioToggle = false
+  radioEscape = false
 
   private readonly canvas: HTMLCanvasElement
   private armed = false
@@ -31,6 +33,8 @@ export class Input {
     this.lookHoldToggle = false
     this.lightsToggle = false
     this.hornPulse = false
+    this.radioToggle = false
+    this.radioEscape = false
     this.mouseDx = 0
     this.mouseDy = 0
   }
@@ -72,6 +76,18 @@ export class Input {
     return honk
   }
 
+  consumeRadioToggle(): boolean {
+    const toggled = this.radioToggle
+    this.radioToggle = false
+    return toggled
+  }
+
+  consumeRadioEscape(): boolean {
+    const escaped = this.radioEscape
+    this.radioEscape = false
+    return escaped
+  }
+
   throttle(): number {
     let v = 0
     if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) v += 1
@@ -104,6 +120,7 @@ export class Input {
       event.code === 'KeyV' ||
       event.code === 'KeyF' ||
       event.code === 'KeyL' ||
+      event.code === 'KeyR' ||
       event.code === 'ShiftLeft' ||
       event.code === 'ShiftRight'
     ) {
@@ -112,6 +129,11 @@ export class Input {
     this.keys.add(event.code)
     if (event.repeat) return
     if (!this.armed) return
+    if (event.code === 'Escape') this.radioEscape = true
+    if (event.code === 'KeyR' && event.altKey) {
+      this.radioToggle = true
+      return
+    }
     if (event.code === 'KeyR') this.restart = true
     if (event.code === 'KeyV' || event.key === 'v' || event.key === 'V') this.viewToggle = true
     if (event.code === 'KeyF' || event.key === 'f' || event.key === 'F') this.lookHoldToggle = true

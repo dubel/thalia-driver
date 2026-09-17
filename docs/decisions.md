@@ -33,3 +33,7 @@ The pack sidewalk is a lip. The car climbs it because `surfaceHeight` adds a sho
 ## Procedural cluster
 
 The GLB binnacle is empty discs (`polySurface97` / `98`). Gauges are two circular canvases in `cluster.ts` (Clio II / Thalia Jaeger: tacho left, speedo right), leaving the middle rectangle free. Backlight is a cabin function of `L`, not of time of day.
+
+## Live radio, not files
+
+The 2006 head unit has no tuner data. Stations are the public HTTPS streams the broadcasters publish (Icecast MP3/AAC, Trójka HLS). Do not bundle music. `R` stays reset; radio is **Alt+R** so the two do not collide. Unlock the pointer for the modal — the overlay card pattern (`pointer-events: auto`) already exists for Drive.

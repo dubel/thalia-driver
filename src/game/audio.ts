@@ -170,11 +170,12 @@ export class GameAudio {
     await ctx.resume()
   }
 
-  setMotion(amount: number): void {
+  setMotion(amount: number, radioOn = false): void {
     if (!this.ctx || !this.engineGain || !this.engineSrc) return
     const moving = Math.max(0, Math.min(1, amount))
     this.engineVol += (moving - this.engineVol) * 0.14
-    this.engineGain.gain.setTargetAtTime(this.engineVol * 0.52, this.ctx.currentTime, 0.08)
+    const engine = this.engineVol * (radioOn ? 0.22 : 0.52)
+    this.engineGain.gain.setTargetAtTime(engine, this.ctx.currentTime, 0.08)
     this.engineSrc.playbackRate.setTargetAtTime(0.86 + this.engineVol * 0.42, this.ctx.currentTime, 0.1)
     if (this.engineFilter) {
       this.engineFilter.frequency.setTargetAtTime(380 + this.engineVol * 920, this.ctx.currentTime, 0.12)

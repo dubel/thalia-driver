@@ -15,6 +15,7 @@ import { ARENA_HALF, LAMP_URL, PLAYER_CAR, PLAYER_SPAWN, SHOW_FPS, STREET_URL } 
 import { GameAudio, warmAudioFromGesture } from './audio'
 import { Input } from './input'
 import { Car } from './Car'
+import { RadioPlayer, type RadioStationId } from './radio'
 import type { Hud } from '../ui/hud'
 
 export class Game {
@@ -28,6 +29,7 @@ export class Game {
   private player!: Car
   private readonly cabinLight = new PointLight(0xfff1dc, 0, 2.6)
   private readonly audio = new GameAudio()
+  private readonly radio = new RadioPlayer()
   private playing = false
   private fpsFrames = 0
   private fpsAcc = 0
@@ -44,9 +46,14 @@ export class Game {
     this.resize()
     window.addEventListener('resize', () => this.resize())
     canvas.addEventListener('click', () => {
+      if (this.hud.isRadioOpen()) return
       if (this.playing && !this.input.pointerLocked) this.input.lockPointer()
     })
     this.hud.onPlay(() => this.beginPlay())
+    this.hud.onRadioPick((id) => void this.tuneRadio(id))
+    this.hud.onRadioClosed(() => {
+      if (this.playing) this.input.lockPointer()
+    })
   }
 
   async start(): Promise<void> {
@@ -106,13 +113,22 @@ export class Game {
   }
 
   private update(dt: number): void {
-    if (this.input.consumeRestart() && this.player) {
+    if (this.input.consumeRestart() && this.player && !this.hud.isRadioOpen()) {
       this.player.reset()
       this.cameraRig.reset(this.player)
       this.hud.hideOverlay()
       this.input.arm()
       this.playing = true
     }
+
+    if (this.playing && this.input.consumeRadioToggle()) {
+      const open = this.hud.toggleRadio(this.radio.station)
+      if (open) {
+        document.exitPointerLock()
+        void import('hls.js')
+      } else this.input.lockPointer()
+    }
+    if (this.input.consumeRadioEscape() && this.hud.isRadioOpen()) this.hud.hideRadio()
 
     const mouse = this.input.consumeMouse()
     if (this.input.consumeViewToggle() && this.player) this.cameraRig.toggle()
@@ -129,7 +145,7 @@ export class Game {
         ARENA_HALF,
       )
       this.hud.setSpeed(Math.abs(this.player.speed) * 3.6)
-      this.audio.setMotion(Math.abs(this.player.speed) / this.player.config.maxSpeed)
+      this.audio.setMotion(Math.abs(this.player.speed) / this.player.config.maxSpeed, this.radio.playing)
     } else {
       this.audio.setMotion(0)
     }
@@ -142,6 +158,7 @@ export class Game {
       const day = 1 - night
       this.player.syncLights(night)
       this.player.cluster.tick(this.player.speed, this.player.lightsOn, dt, night)
+      this.player.radioLcd.tick(this.arena.atmosphere.clockHour, this.radio.lcdLabel(), dt)
       this.scene.environmentIntensity = 0.04 + 0.82 * day ** 1.55
       this.renderer.toneMappingExposure = 0.36 + 0.66 * day
       this.hud.setAtmosphere(this.arena.atmosphere.label)
@@ -167,5 +184,12 @@ export class Game {
     const height = window.innerHeight
     this.renderer.setSize(width, height, false)
     this.cameraRig.resize(width, height)
+  }
+
+  private async tuneRadio(id: RadioStationId): Promise<void> {
+    this.hud.markRadio(id)
+    void this.audio.unlock()
+    await this.radio.setStation(id)
+    this.hud.markRadio(this.radio.station)
   }
 }

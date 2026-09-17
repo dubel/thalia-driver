@@ -30,9 +30,10 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/Car.ts` | arcade hull physics, sit-on-terrain, headlights |
 | `src/game/cluster.ts` | procedural Clio/Thalia gauges (tacho + speedo, ruby backlight) |
 | `src/game/camera.ts` | chase follow + cockpit look (`F` hold) |
-| `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R |
+| `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R, Alt+R radio |
 | `src/game/audio.ts` | diesel, horn, rain / thunder / birds |
-| `src/ui/hud.ts` | overlay + speedo + clock + optional FPS |
+| `src/game/radio.ts` | live station streams, head-unit LCD |
+| `src/ui/hud.ts` | overlay + speedo + radio modal + optional FPS |
 
 ## Skill
 
