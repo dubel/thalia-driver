@@ -11,10 +11,10 @@ import {
 } from 'three'
 import type HlsType from 'hls.js'
 
-const LCD_W = 512
-const LCD_H = 128
+const LCD_W = 1024
+const LCD_H = 256
 const RUBY = '#f06a28'
-const RUBY_GLOW = 'rgba(240, 90, 28, 0.7)'
+const RUBY_GLOW = 'rgba(240, 90, 28, 0.85)'
 
 const _look = new Vector3()
 
@@ -236,12 +236,12 @@ export class RadioLcd {
       depthWrite: true,
       side: DoubleSide,
       polygonOffset: true,
-      polygonOffsetFactor: -6,
-      polygonOffsetUnits: -6,
+      polygonOffsetFactor: -8,
+      polygonOffsetUnits: -8,
     })
-    this.mesh = new Mesh(new PlaneGeometry(0.108, 0.026), mat)
+    this.mesh = new Mesh(new PlaneGeometry(0.175, 0.05), mat)
     this.mesh.name = 'RadioLcd'
-    this.mesh.renderOrder = 3
+    this.mesh.renderOrder = 4
     this.mesh.castShadow = false
     this.mesh.receiveShadow = false
     this.place(visual, eye)
@@ -261,7 +261,7 @@ export class RadioLcd {
 
   private place(visual: Object3D, eye: { x: number; y: number; z: number }): void {
     visual.add(this.mesh)
-    const pos = new Vector3(eye.x, eye.y - 0.382, eye.z + 0.655)
+    const pos = new Vector3(eye.x, eye.y - 0.358, eye.z + 0.635)
     _look.set(eye.x, eye.y, eye.z)
     const root = visual.parent
     if (root) {
@@ -272,27 +272,30 @@ export class RadioLcd {
     this.mesh.position.copy(pos)
     this.mesh.updateMatrixWorld(true)
     this.mesh.lookAt(_look)
-    this.mesh.translateY(0.036)
+    this.mesh.translateX(0.33)
+    this.mesh.translateZ(-0.016)
   }
 
   private paint(text: string, clock: boolean): void {
     const ctx = this.ctx
-    ctx.fillStyle = '#120c09'
+    ctx.fillStyle = '#1a0c08'
     ctx.fillRect(0, 0, LCD_W, LCD_H)
+    ctx.fillStyle = '#2a120c'
+    ctx.fillRect(18, 18, LCD_W - 36, LCD_H - 36)
     const glow = ctx.createLinearGradient(0, 0, 0, LCD_H)
-    glow.addColorStop(0, 'rgba(240, 90, 28, 0.22)')
+    glow.addColorStop(0, 'rgba(240, 90, 28, 0.28)')
     glow.addColorStop(1, 'rgba(18, 8, 6, 0)')
     ctx.fillStyle = glow
-    ctx.fillRect(0, 0, LCD_W, LCD_H)
+    ctx.fillRect(18, 18, LCD_W - 36, LCD_H - 36)
     ctx.fillStyle = RUBY
     ctx.shadowColor = RUBY_GLOW
-    ctx.shadowBlur = 14
+    ctx.shadowBlur = 28
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.font = clock
-      ? '700 72px ui-monospace, "Cascadia Mono", monospace'
-      : '700 54px ui-monospace, "Cascadia Mono", monospace'
-    ctx.fillText(text, LCD_W / 2, LCD_H / 2 + 4)
+      ? '800 160px ui-monospace, "Cascadia Mono", monospace'
+      : '800 118px ui-monospace, "Cascadia Mono", monospace'
+    ctx.fillText(text, LCD_W / 2, LCD_H / 2 + 8)
     ctx.shadowBlur = 0
   }
 }
