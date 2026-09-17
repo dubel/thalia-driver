@@ -98,6 +98,7 @@ export class Game {
     cancelAnimationFrame(this.raf)
     window.removeEventListener('resize', this.onResize)
     this.renderer.domElement.removeEventListener('click', this.onCanvasClick)
+    this.player?.mirrors.dispose()
     this.input.dispose()
     this.renderer.dispose()
   }
@@ -117,6 +118,14 @@ export class Game {
     const raw = this.clock.getDelta()
     const dt = Math.min(raw, 0.08)
     this.update(dt)
+    if (this.player && this.cameraRig.mode === 'cockpit') {
+      this.player.mirrors.draw(
+        this.renderer,
+        this.scene,
+        this.cameraRig.camera,
+        this.arena.atmosphere,
+      )
+    }
     this.renderer.render(this.scene, this.cameraRig.camera)
     if (SHOW_FPS) this.tickFps(raw)
   }
@@ -152,6 +161,7 @@ export class Game {
         dt,
         this.arena.obstacleIndex,
         ARENA_HALF,
+        this.arena.atmosphere.wetness,
       )
       this.hud.setSpeed(Math.abs(this.player.speed) * 3.6)
       this.audio.setMotion(Math.abs(this.player.speed) / this.player.config.maxSpeed, this.radio.playing)
@@ -161,6 +171,7 @@ export class Game {
 
     if (this.player) {
       this.hud.setCockpit(this.cameraRig.mode === 'cockpit')
+      this.player.mirrors.setCockpit(this.cameraRig.mode === 'cockpit')
       this.cabinLight.intensity = this.cameraRig.mode === 'cockpit' ? 0.42 : 0
       this.arena.tick(dt, this.cameraRig.camera, this.player.position)
       const night = this.arena.atmosphere.night

@@ -383,6 +383,14 @@ export class Atmosphere {
     this.label = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${weatherLabel(weatherId, rain, this.mist)}`
   }
 
+  rainVisible(): boolean {
+    return this.rainPts.visible
+  }
+
+  setRainVisible(on: boolean): void {
+    this.rainPts.visible = on
+  }
+
   private placeLight(light: DirectionalLight, dir: Vector3, follow: Vector3, dist: number): void {
     const y = Math.max(dir.y, 0.18)
     const len = Math.hypot(dir.x, y, dir.z) || 1

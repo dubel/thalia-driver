@@ -33,6 +33,7 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R, Alt+R radio |
 | `src/game/audio.ts` | diesel, horn, rain / thunder / birds |
 | `src/game/radio.ts` | live station streams, head-unit LCD |
+| `src/game/mirrors.ts` | cockpit wing + interior mirrors (one 256×128 pass / frame) |
 | `src/ui/hud.ts` | overlay + speedo + radio modal + optional FPS |
 
 ## Skill

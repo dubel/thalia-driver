@@ -14,10 +14,13 @@ import { DESCRIBE, type CarConfig } from './config'
 import { applyCarRig, type LightMats, type SteeringWheel, type WheelRig } from './rig'
 import { mountCluster, type Cluster } from './cluster'
 import { mountRadioLcd, type RadioLcd } from './radio'
+import { mountMirrors, type MirrorRig } from './mirrors'
 import { clampToBounds, collidesAny, type ObstacleSet } from './collision'
 import { surfaceHeight } from './terrain'
 
-const _forward = new Vector3()
+const MAX_STEER = 0.5
+const MAX_YAW_RATE = 2.6
+const MAX_BODY_ROLL = 0.038
 
 function wrapPi(angle: number): number {
   let a = angle
@@ -92,6 +95,7 @@ export class Car {
   lightsOn = false
   readonly cluster: Cluster
   readonly radioLcd: RadioLcd
+  readonly mirrors: MirrorRig
 
   private readonly spawn = new Vector3()
   private readonly spawnYaw: number
@@ -101,6 +105,7 @@ export class Car {
   private readonly headlamps: SpotLight[] = []
   private terrainPitch = 0
   private terrainRoll = 0
+  private gForceRoll = 0
 
   constructor(model: Object3D, config: CarConfig, spawn: Vector3, spawnYaw: number) {
     this.config = config
@@ -127,6 +132,8 @@ export class Car {
     this.mountHeadlights()
     this.cluster = mountCluster(rig.visual, config.cockpitEye)
     this.radioLcd = mountRadioLcd(rig.visual, config.cockpitEye)
+    this.mirrors = mountMirrors(rig.visual, config.cockpitEye)
+    this.mirrors.setCockpit(false)
     if (DESCRIBE && !this.steering) console.warn('Steering wheel mesh not found')
   }
 
@@ -139,6 +146,7 @@ export class Car {
     this.vx = 0
     this.vz = 0
     this.steerAngle = 0
+    this.gForceRoll = 0
     this.object.position.copy(this.spawn)
     this.hullYaw = this.spawnYaw
     for (const wheel of this.wheels) {
@@ -156,39 +164,55 @@ export class Car {
     dt: number,
     obstacles: ObstacleSet,
     halfArena: number,
+    wetness = 0,
   ): void {
     const cfg = this.config
+    const yaw = this.hullYaw
+    const fwdX = Math.sin(yaw)
+    const fwdZ = Math.cos(yaw)
+    const rightX = Math.cos(yaw)
+    const rightZ = -Math.sin(yaw)
+
+    let forward = this.vx * fwdX + this.vz * fwdZ
+    let lateral = this.vx * rightX + this.vz * rightZ
+
     if (throttle > 0) {
-      this.speed += cfg.accel * throttle * dt
+      forward += cfg.accel * throttle * dt
     } else if (throttle < 0) {
-      if (this.speed > 0.8) this.speed += cfg.brake * throttle * dt
-      else this.speed += cfg.accel * 0.62 * throttle * dt
+      if (forward > 0.8) forward += cfg.brake * throttle * dt
+      else forward += cfg.accel * 0.62 * throttle * dt
     } else {
       const drag = handbrake ? cfg.brake * 1.35 : cfg.coast
-      this.speed -= Math.sign(this.speed) * Math.min(Math.abs(this.speed), drag * dt)
+      forward -= Math.sign(forward) * Math.min(Math.abs(forward), drag * dt)
     }
     if (handbrake) {
-      this.speed -= Math.sign(this.speed) * Math.min(Math.abs(this.speed), cfg.brake * 0.85 * dt)
+      forward -= Math.sign(forward) * Math.min(Math.abs(forward), cfg.brake * 0.85 * dt)
     }
-    this.speed = Math.max(-cfg.reverseSpeed, Math.min(cfg.maxSpeed, this.speed))
+    forward = Math.max(-cfg.reverseSpeed, Math.min(cfg.maxSpeed, forward))
 
-    const speedAbs = Math.abs(this.speed)
-    const steerTarget = steer * 0.55
+    const speedAbs = Math.abs(forward)
+    const steerTarget = steer * MAX_STEER
     this.steerAngle += (steerTarget - this.steerAngle) * (1 - Math.exp(-14 * dt))
-    const grip = handbrake ? 1.55 : 1
-    const lowSpeed = speedAbs < 0.45 ? 0.42 : 1
-    const highSpeed = 1 / (1 + speedAbs / 24)
-    const moving = Math.sign(this.speed || (Math.abs(steer) > 0.05 ? 1 : 0))
-    const turn =
-      this.steerAngle * cfg.turnSpeed * grip * lowSpeed * highSpeed * moving * dt
-    const nextYaw = wrapPi(this.hullYaw + turn)
 
-    _forward.set(Math.sin(nextYaw), 0, Math.cos(nextYaw))
-    const dist = this.speed * dt
-    const nextX = this.object.position.x + _forward.x * dist
-    const nextZ = this.object.position.z + _forward.z * dist
+    const wet = 1 - 0.42 * Math.min(1, wetness)
+    const rearGrip = handbrake ? 0.2 : 1
+    const grip = cfg.latGrip * wet * rearGrip
+    lateral *= Math.exp(-grip * dt)
 
-    const blockedYaw = collidesAny(
+    const understeer = 1 / (1 + speedAbs / 16)
+    const delta = this.steerAngle * understeer
+    const bicycle = speedAbs > 0.12 ? (forward / cfg.wheelbase) * Math.tan(delta) : 0
+    const crawlMix = 1 - Math.min(1, speedAbs / 3.2)
+    const crawl = this.steerAngle * cfg.turnSpeed * 0.38 * (forward >= 0 ? 1 : -1)
+    let yawRate = bicycle * (1 - crawlMix) + crawl * crawlMix
+    if (handbrake && speedAbs > 1) {
+      yawRate += this.steerAngle * speedAbs * 0.18
+      yawRate += lateral * 0.28
+    }
+    yawRate = Math.max(-MAX_YAW_RATE, Math.min(MAX_YAW_RATE, yawRate))
+
+    const nextYaw = wrapPi(yaw + yawRate * dt)
+    const yawBlocked = collidesAny(
       this.object.position.x,
       this.object.position.z,
       nextYaw,
@@ -196,15 +220,19 @@ export class Car {
       this.halfLength,
       obstacles,
     )
-    const yaw = blockedYaw ? this.hullYaw : nextYaw
-    const prevX = this.object.position.x
-    const prevZ = this.object.position.z
+    const poseYaw = yawBlocked ? yaw : nextYaw
+    const poseSin = Math.sin(poseYaw)
+    const poseCos = Math.cos(poseYaw)
+    this.vx = poseSin * forward + poseCos * lateral
+    this.vz = poseCos * forward - poseSin * lateral
 
-    const tryPos = (x: number, z: number, y: number): boolean =>
-      !collidesAny(x, z, y, this.halfWidth, this.halfLength, obstacles)
+    const nextX = this.object.position.x + this.vx * dt
+    const nextZ = this.object.position.z + this.vz * dt
+    const tryPos = (x: number, z: number): boolean =>
+      !collidesAny(x, z, poseYaw, this.halfWidth, this.halfLength, obstacles)
 
     const bounded = clampToBounds(nextX, nextZ, this.halfWidth, this.halfLength, halfArena)
-    if (tryPos(bounded.x, bounded.z, yaw)) {
+    if (tryPos(bounded.x, bounded.z)) {
       this.object.position.x = bounded.x
       this.object.position.z = bounded.z
     } else {
@@ -215,28 +243,30 @@ export class Car {
         this.halfLength,
         halfArena,
       )
-      if (tryPos(onlyX.x, this.object.position.z, yaw)) {
+      const onlyZ = clampToBounds(
+        this.object.position.x,
+        bounded.z,
+        this.halfWidth,
+        this.halfLength,
+        halfArena,
+      )
+      if (tryPos(onlyX.x, this.object.position.z)) {
         this.object.position.x = onlyX.x
+        this.vz *= 0.08
+      } else if (tryPos(this.object.position.x, onlyZ.z)) {
+        this.object.position.z = onlyZ.z
+        this.vx *= 0.08
       } else {
-        const onlyZ = clampToBounds(
-          this.object.position.x,
-          bounded.z,
-          this.halfWidth,
-          this.halfLength,
-          halfArena,
-        )
-        if (tryPos(this.object.position.x, onlyZ.z, yaw)) {
-          this.object.position.z = onlyZ.z
-        } else {
-          this.speed *= 0.35
-        }
+        this.vx *= 0.18
+        this.vz *= 0.18
       }
-      this.speed *= 0.72
     }
 
-    this.hullYaw = yaw
-    this.vx = dt > 1e-5 ? (this.object.position.x - prevX) / dt : 0
-    this.vz = dt > 1e-5 ? (this.object.position.z - prevZ) / dt : 0
+    this.hullYaw = poseYaw
+    this.speed = this.vx * poseSin + this.vz * poseCos
+    const lean = -(yawRate * speedAbs) * 0.0012 - lateral * 0.004
+    const leanTarget = Math.max(-MAX_BODY_ROLL, Math.min(MAX_BODY_ROLL, lean))
+    this.gForceRoll += (leanTarget - this.gForceRoll) * (1 - Math.exp(-5 * dt))
     this.sitOnTerrain(dt)
     this.spinWheels(dt)
   }
@@ -304,7 +334,7 @@ export class Car {
     this.object.rotation.order = 'YXZ'
     this.object.rotation.y = this.hullYaw
     this.object.rotation.x = this.terrainPitch
-    this.object.rotation.z = this.terrainRoll
+    this.object.rotation.z = clampTilt(this.terrainRoll + this.gForceRoll)
   }
 
   private spinWheels(dt: number): void {

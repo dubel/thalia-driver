@@ -4,7 +4,7 @@ Short: **what and why**, so old arguments stay closed. Karaluch lessons that sti
 
 ## Genre
 
-Need for Speed / Driver: chase cam, arcade acceleration, an empty lot you can actually *drive*. The Karaluch hull (WASD + mouse yaw, sit-on-terrain, wall slide) stays because that steering felt right. Inertia and a handbrake are the car layer on top of that hull, not a sim.
+Need for Speed / Driver: chase cam, arcade acceleration, an empty lot you can actually *drive*. The Karaluch hull (WASD + mouse yaw, sit-on-terrain, wall slide) stays as the *frame*: bicycle yaw + lateral grip on top, not a physics engine. Inertia, a handbrake that drops rear grip, and a little visual roll are the car layer.
 
 ## No game engine
 
@@ -37,3 +37,7 @@ The GLB binnacle is empty discs (`polySurface97` / `98`). Gauges are two circula
 ## Live radio, not files
 
 The 2006 head unit has no tuner data. Stations are the public HTTPS streams the broadcasters publish (Icecast MP3/AAC, Trójka HLS). Do not bundle music. `R` stays reset; radio is **Alt+R** so the two do not collide. Unlock the pointer for the modal — the overlay card pattern (`pointer-events: auto`) already exists for Drive.
+
+## Cheap cockpit mirrors
+
+The pack has wing housings (`Mesh49` / `Mesh86`) but no glass primitive. Interior chrome/plastic is `Mesh12` at the windshield header. Overlay quads in hull slots (not Mesh12 AABB), cameras look hull −Z from the glass. One 256×128 target per frame. Do not add `Reflector` on every pad, and do not planar-reflect the cockpit eye (that aims at the hood).

@@ -8,7 +8,12 @@ export type CarConfig = {
   accel: number
   brake: number
   coast: number
+  /** Parking-lot yaw (rad/s at full lock). Highway turn uses wheelbase + grip. */
   turnSpeed: number
+  /** Axle distance (m). Thalia / Symbol is ~2.47. */
+  wheelbase: number
+  /** Lateral grip (1/s). Higher = less slide. */
+  latGrip: number
   cameraDistance: number
   cameraHeight: number
   wheelNames: string[]
@@ -65,6 +70,8 @@ export const PLAYER_CAR: CarConfig = {
   brake: 28,
   coast: 7,
   turnSpeed: 2.55,
+  wheelbase: 2.47,
+  latGrip: 9.5,
   cameraDistance: 8.6,
   cameraHeight: 2.55,
   wheelNames: ['roda1', 'roda2', 'roda3', 'roda4'],

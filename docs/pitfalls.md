@@ -28,7 +28,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Tank-speed car.** Karaluch cruise was ~9–11 m/s. The Thalia tops out at `maxSpeed` 32 m/s (~115 km/h) so the 950 m lot is usable. Do not copy `CRUISE` from the tank.
 
-**Turn in place like a TKS.** Fine at walking speed (`lowSpeed` factor). Do not give full `turnSpeed` at 30 m/s — that reads as ice, not a sedan.
+**Sedan leans like a boat.** `gForceRoll` is a hint (~2°), not a rally animation. Do not add it on top of full `clampTilt` sidewalk roll without a tight cap (`MAX_BODY_ROLL`).
 
 ## Overlay / gestures
 
@@ -39,6 +39,8 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 **Alt+R vs R.** `R` alone resets. `event.altKey` on `KeyR` opens the radio modal and must not set `restart`. Unlock the pointer for the modal; do not re-lock on canvas clicks while it is open.
 
 **Radio LCD crooked / upside-down on the DIN.** After `translateX` onto the center stack, do not `lookAt` the driver — that yaws the quad toward the seat. Keep the slide, set the plane to the fascia, then `rotateZ(π)` so the ruby clock is upright. Nudge right/down into the window. `polySurface80` is the column shroud.
+
+**Mirror glass as a second scene.** Do not hook `Reflector` `onBeforeRender` on both wings — that doubles (or triples) the lot. `mirrors.ts` renders **one** 256×128 target per frame, no shadows / rain, cockpit only. Cameras sit beside / behind the hull and look **−Z**. Seat overlays in **hull slots** (cluster recipe), not on a Mesh12 AABB. Interior stadium looks at the **hull centerline**, not the offset driver eye (that yaws the horizon in the frame). Wings are **landscape** ellipses in the lookAt plane (portrait reads as a circle in the oval). Hide only `Mesh12_CHROME_0`. `depthTest: false` so paint does not cover the pad.
 
 ## Performance
 

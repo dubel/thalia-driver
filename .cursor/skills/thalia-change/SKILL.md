@@ -31,6 +31,7 @@ description: >-
 - Forward is +Z. Fix with visual yaw, not hull spawn hacks.
 - Steering: `Mesh15` + hub `Mesh14`, column through the driver eye. Cluster: two circles in the binnacle holes (`cluster.ts`), ruby only with `L`.
 - Sit is four-wheel average over the sidewalk ramp — not `max()` / `min(center)`.
+- Drive is bicycle + lateral grip in `Car.drive`. Do not go back to yaw-rate-only (tank) at speed. Handbrake drops rear grip.
 
 **Camera**
 
@@ -41,6 +42,7 @@ description: >-
 - Overlay `pointer-events: none`, card `auto`, so Drive stays clickable.
 - 2D speedo is chase-only; cockpit uses the binnacle cluster.
 - Radio is Alt+R (R alone still resets). LCD on the center-stack DIN (not the column shroud), ruby clock / station.
+- Wing mirrors are landscape ellipses filling `Mesh49` / `Mesh86` ovals (portrait reads as a circle). Interior stadium looks at the hull centerline, not the offset eye (that yaws the horizon). One 256×128 RT per frame, cockpit only. Do not Reflector-onBeforeRender (that is 2–3 full scene passes).
 
 ## Verify
 
