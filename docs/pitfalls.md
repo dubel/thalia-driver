@@ -24,7 +24,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Front bulbs glow red.** `Carro_Refletor_Lanterna` is shared by front and rear. Clone per mesh and classify by local Z; do not remap one material onto both ends.
 
-**Cockpit gauges unreadable / always glowing.** `cluster.ts` is two circular faces in `polySurface97` / `98`, not one slab over the whole binnacle (that hides the middle LCD / fuel window). Ruby backlight and the green sidelight telltale are **only** with `L`. Unlit ink is charcoal and goes almost black at night — do not paint bright white numbers when lights are off.
+**Cockpit gauges unreadable / always glowing.** `cluster.ts` is two circular faces over the binnacle holes, placed from the cockpit eye (same pose that worked for the old slab) then shifted along the plane — not at the disc AABB center (that buries them in Mesh8). Leave the middle rectangle free. Ruby backlight and the green sidelight telltale are **only** with `L`. Unlit ink is charcoal and goes almost black at night — do not paint bright white numbers when lights are off.
 
 **Tank-speed car.** Karaluch cruise was ~9–11 m/s. The Thalia tops out at `maxSpeed` 32 m/s (~115 km/h) so the 950 m lot is usable. Do not copy `CRUISE` from the tank.
 

@@ -1,12 +1,11 @@
 import {
-  Box3,
   CanvasTexture,
-  CircleGeometry,
   DoubleSide,
   LinearFilter,
   Mesh,
   MeshBasicMaterial,
   Object3D,
+  PlaneGeometry,
   SRGBColorSpace,
   Vector3,
   type Mesh as MeshType,
@@ -28,9 +27,6 @@ const NEEDLE_DIM = '#454240'
 const NEEDLE_NIGHT = '#1c1b1a'
 const GREEN = '#3dff6a'
 
-const _box = new Box3()
-const _size = new Vector3()
-const _center = new Vector3()
 const _look = new Vector3()
 
 function clamp(n: number, a: number, b: number): number {
@@ -85,14 +81,15 @@ function makeFace(name: string): GaugeFace {
   const mat = new MeshBasicMaterial({
     map,
     transparent: true,
+    alphaTest: 0.12,
     toneMapped: false,
     depthWrite: true,
     side: DoubleSide,
     polygonOffset: true,
-    polygonOffsetFactor: -4,
-    polygonOffsetUnits: -4,
+    polygonOffsetFactor: -6,
+    polygonOffsetUnits: -6,
   })
-  const mesh = new Mesh(new CircleGeometry(0.046, 48), mat)
+  const mesh = new Mesh(new PlaneGeometry(0.095, 0.095), mat)
   mesh.name = name
   mesh.renderOrder = 2
   mesh.castShadow = false
@@ -135,40 +132,31 @@ export class Cluster {
   private place(visual: Object3D, eye: { x: number; y: number; z: number }): void {
     const left = findMesh(visual, LEFT_DISC)
     const right = findMesh(visual, RIGHT_DISC)
-    this.seat(this.tach.mesh, visual, left, eye, -0.087)
-    this.seat(this.speed.mesh, visual, right, eye, 0.087)
     if (left) left.visible = false
     if (right) right.visible = false
+    this.seatOnBinnacle(this.tach.mesh, visual, eye, -0.078)
+    this.seatOnBinnacle(this.speed.mesh, visual, eye, 0.078)
   }
 
-  private seat(
+  private seatOnBinnacle(
     face: Mesh,
     visual: Object3D,
-    disc: MeshType | undefined,
     eye: { x: number; y: number; z: number },
-    fallbackX: number,
+    localX: number,
   ): void {
     visual.add(face)
-    if (disc) {
-      disc.updateMatrixWorld(true)
-      _box.setFromObject(disc)
-      _box.getSize(_size)
-      _box.getCenter(_center)
-      const radius = Math.max(_size.x, _size.y) * 0.44
-      face.geometry.dispose()
-      face.geometry = new CircleGeometry(radius, 48)
-      visual.worldToLocal(_center)
-      face.position.copy(_center)
-    } else {
-      face.position.set(eye.x + fallbackX, eye.y - 0.314, eye.z + 0.88)
-    }
+    const pos = new Vector3(eye.x, eye.y - 0.322, eye.z + 0.86)
     _look.set(eye.x, eye.y, eye.z)
     const root = visual.parent
-    if (root) root.localToWorld(_look)
+    if (root) {
+      root.localToWorld(pos)
+      root.localToWorld(_look)
+      visual.worldToLocal(pos)
+    }
+    face.position.copy(pos)
     face.updateMatrixWorld(true)
     face.lookAt(_look)
-    // Sit on the driver-facing lip of the recessed disc, not the mid-thickness.
-    face.translateZ(0.016)
+    face.translateX(localX)
   }
 
   private paint(): void {
