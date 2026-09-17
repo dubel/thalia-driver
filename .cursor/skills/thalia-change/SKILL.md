@@ -39,7 +39,7 @@ description: >-
 
 - Overlay `pointer-events: none`, card `auto`, so Drive stays clickable.
 - 2D speedo is chase-only; cockpit uses the binnacle cluster.
-- Radio is Alt+R (R alone still resets). LCD from the cockpit eye, ruby clock / station.
+- Radio is Alt+R (R alone still resets). LCD on the center-stack DIN (not the column shroud), ruby clock / station.
 
 ## Verify
 

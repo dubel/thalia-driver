@@ -38,7 +38,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Alt+R vs R.** `R` alone resets. `event.altKey` on `KeyR` opens the radio modal and must not set `restart`. Unlock the pointer for the modal; do not re-lock on canvas clicks while it is open.
 
-**Radio LCD covers the head unit / shows nothing.** Do not use `polySurface80` AABB center, and do not leave the plane on driver X (the wheel hides it). Seat from the cockpit eye, `lookAt` the driver, then `translateX(~0.33)` onto the visible DIN and a few mm `translateZ` toward the cabin. Quad ~0.175 × 0.05 — a 2 cm strip is invisible from the seat. Clock when OFF, station name when live, ruby ink. Keep depth-test on.
+**Radio LCD crooked / upside-down on the DIN.** After `translateX` onto the center stack, do not `lookAt` the driver — that yaws the quad toward the seat. Keep the slide, set the plane to the fascia, then `rotateZ(π)` so the ruby clock is upright. Nudge right/down into the window. `polySurface80` is the column shroud.
 
 ## Process
 

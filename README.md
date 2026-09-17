@@ -56,6 +56,6 @@ http://127.0.0.1:5173/thalia-driver/?fps=false
 Start at [AGENTS.md](AGENTS.md). That file maps sources and points to:
 
 - [docs/architecture.md](docs/architecture.md) — layers, loop, rig
-- [docs/map.md](docs/map.md) — empty lot
+- [docs/map.md](docs/map.md) — lot + street grid
 - [docs/decisions.md](docs/decisions.md) — why this way
 - [docs/pitfalls.md](docs/pitfalls.md) — regressions not to repeat

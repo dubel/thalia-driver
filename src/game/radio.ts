@@ -6,6 +6,7 @@ import {
   MeshBasicMaterial,
   Object3D,
   PlaneGeometry,
+  Quaternion,
   SRGBColorSpace,
   Vector3,
 } from 'three'
@@ -17,6 +18,10 @@ const RUBY = '#f06a28'
 const RUBY_GLOW = 'rgba(240, 90, 28, 0.85)'
 
 const _look = new Vector3()
+const _pos = new Vector3()
+const _z = new Vector3(0, 0, 1)
+const _face = new Vector3()
+const _q = new Quaternion()
 
 export type RadioStationId = 'off' | 'eska-rock' | 'antyradio' | 'tok-fm' | 'trojka' | 'rmf-fm' | 'zet'
 
@@ -233,15 +238,13 @@ export class RadioLcd {
       map: this.map,
       transparent: false,
       toneMapped: false,
+      depthTest: true,
       depthWrite: true,
       side: DoubleSide,
-      polygonOffset: true,
-      polygonOffsetFactor: -8,
-      polygonOffsetUnits: -8,
     })
-    this.mesh = new Mesh(new PlaneGeometry(0.175, 0.05), mat)
+    this.mesh = new Mesh(new PlaneGeometry(0.168, 0.048), mat)
     this.mesh.name = 'RadioLcd'
-    this.mesh.renderOrder = 4
+    this.mesh.renderOrder = 0
     this.mesh.castShadow = false
     this.mesh.receiveShadow = false
     this.place(visual, eye)
@@ -261,19 +264,27 @@ export class RadioLcd {
 
   private place(visual: Object3D, eye: { x: number; y: number; z: number }): void {
     visual.add(this.mesh)
-    const pos = new Vector3(eye.x, eye.y - 0.358, eye.z + 0.635)
+    // Same seating as the cluster: hull-space offset from the driver eye, then
+    // slide along the fascia onto the center-stack DIN. polySurface80 is the
+    // steering-column shroud — do not bind to that mesh.
+    _pos.set(eye.x, eye.y - 0.358, eye.z + 0.635)
     _look.set(eye.x, eye.y, eye.z)
     const root = visual.parent
     if (root) {
-      root.localToWorld(pos)
+      root.localToWorld(_pos)
       root.localToWorld(_look)
-      visual.worldToLocal(pos)
+      visual.worldToLocal(_pos)
     }
-    this.mesh.position.copy(pos)
+    this.mesh.position.copy(_pos)
     this.mesh.updateMatrixWorld(true)
     this.mesh.lookAt(_look)
-    this.mesh.translateX(0.33)
-    this.mesh.translateZ(-0.016)
+    this.mesh.translateX(0.342)
+    this.mesh.translateY(-0.014)
+    this.mesh.translateZ(-0.018)
+    // Face the fascia, not the driver: lookAt from the stack yaws the quad.
+    _face.set(0, 0.18, -0.984).normalize()
+    this.mesh.quaternion.copy(_q.setFromUnitVectors(_z, _face))
+    this.mesh.rotateZ(Math.PI)
   }
 
   private paint(text: string, clock: boolean): void {
