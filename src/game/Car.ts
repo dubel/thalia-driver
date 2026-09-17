@@ -322,7 +322,8 @@ export class Car {
     for (const x of sides) {
       const throwBeam = new SpotLight(0xf4f7ff, 0, 82, 0.28, 0.42, 1.15)
       throwBeam.position.set(x, 0.72, 1.92)
-      throwBeam.target.position.set(x * 0.28, -0.35, 38)
+      // Same long throw; aim the cone down so the pool sits closer to the bumper.
+      throwBeam.target.position.set(x * 0.28, -0.95, 38)
       throwBeam.castShadow = false
       this.object.add(throwBeam)
       this.object.add(throwBeam.target)

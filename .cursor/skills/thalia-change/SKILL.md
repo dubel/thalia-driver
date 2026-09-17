@@ -28,7 +28,7 @@ description: >-
 - Constants in `config.ts`. After `normalizeModel` only `position.y +=`.
 - Wheels: `roda1`–`roda4`, pivot at bbox center, `?describe=true`.
 - Forward is +Z. Fix with visual yaw, not hull spawn hacks.
-- Steering: `Mesh15` + hub `Mesh14`, column through the driver eye. Cluster: `cluster.ts`, ruby only with `L`.
+- Steering: `Mesh15` + hub `Mesh14`, column through the driver eye. Cluster: two circles in the binnacle holes (`cluster.ts`), ruby only with `L`.
 - Sit is four-wheel average over the sidewalk ramp — not `max()` / `min(center)`.
 
 **Camera**

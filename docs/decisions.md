@@ -32,4 +32,4 @@ The pack sidewalk is a lip. The car climbs it because `surfaceHeight` adds a sho
 
 ## Procedural cluster
 
-The GLB binnacle is empty discs. Gauges are a canvas in `cluster.ts` (Clio II / Thalia Jaeger: tacho left, speedo right). Backlight is a cabin function of `L`, not of time of day.
+The GLB binnacle is empty discs (`polySurface97` / `98`). Gauges are two circular canvases in `cluster.ts` (Clio II / Thalia Jaeger: tacho left, speedo right), leaving the middle rectangle free. Backlight is a cabin function of `L`, not of time of day.

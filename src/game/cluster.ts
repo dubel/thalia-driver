@@ -1,21 +1,23 @@
 import {
+  Box3,
   CanvasTexture,
+  CircleGeometry,
   DoubleSide,
   LinearFilter,
   Mesh,
   MeshBasicMaterial,
   Object3D,
-  PlaneGeometry,
   SRGBColorSpace,
   Vector3,
   type Mesh as MeshType,
 } from 'three'
 
-const W = 1024
-const H = 448
+const W = 512
 const TACH_MAX = 70
 const SPEED_MAX = 220
 const IDLE_RPM = 850
+const LEFT_DISC = 'polySurface97_Carro_Plastico_0'
+const RIGHT_DISC = 'polySurface98_Carro_Plastico_0'
 
 const RUBY = '#f06a28'
 const RUBY_DIM = '#9a3e18'
@@ -25,6 +27,11 @@ const GREY_NIGHT = '#161514'
 const NEEDLE_DIM = '#454240'
 const NEEDLE_NIGHT = '#1c1b1a'
 const GREEN = '#3dff6a'
+
+const _box = new Box3()
+const _size = new Vector3()
+const _center = new Vector3()
+const _look = new Vector3()
 
 function clamp(n: number, a: number, b: number): number {
   return Math.min(b, Math.max(a, n))
@@ -57,11 +64,45 @@ function findMesh(root: Object3D, name: string): MeshType | undefined {
   return found
 }
 
+type GaugeFace = {
+  mesh: Mesh
+  canvas: HTMLCanvasElement
+  ctx: CanvasRenderingContext2D
+  map: CanvasTexture
+}
+
+function makeFace(name: string): GaugeFace {
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = W
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Missing 2d canvas')
+  const map = new CanvasTexture(canvas)
+  map.colorSpace = SRGBColorSpace
+  map.generateMipmaps = false
+  map.minFilter = LinearFilter
+  map.magFilter = LinearFilter
+  const mat = new MeshBasicMaterial({
+    map,
+    transparent: true,
+    toneMapped: false,
+    depthWrite: true,
+    side: DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -4,
+    polygonOffsetUnits: -4,
+  })
+  const mesh = new Mesh(new CircleGeometry(0.046, 48), mat)
+  mesh.name = name
+  mesh.renderOrder = 2
+  mesh.castShadow = false
+  mesh.receiveShadow = false
+  return { mesh, canvas, ctx, map }
+}
+
 export class Cluster {
-  readonly mesh: Mesh
-  private readonly canvas: HTMLCanvasElement
-  private readonly ctx: CanvasRenderingContext2D
-  private readonly map: CanvasTexture
+  private readonly tach: GaugeFace
+  private readonly speed: GaugeFace
   private shownKmh = 0
   private shownTach = IDLE_RPM / 100
   private odoKm = 12840
@@ -70,35 +111,10 @@ export class Cluster {
   private night = 0
 
   constructor(visual: Object3D, eye: { x: number; y: number; z: number }) {
-    this.canvas = document.createElement('canvas')
-    this.canvas.width = W
-    this.canvas.height = H
-    const ctx = this.canvas.getContext('2d')
-    if (!ctx) throw new Error('Missing 2d canvas')
-    this.ctx = ctx
-    this.map = new CanvasTexture(this.canvas)
-    this.map.colorSpace = SRGBColorSpace
-    this.map.generateMipmaps = false
-    this.map.minFilter = LinearFilter
-    this.map.magFilter = LinearFilter
-    const mat = new MeshBasicMaterial({
-      map: this.map,
-      transparent: true,
-      toneMapped: false,
-      depthWrite: true,
-      side: DoubleSide,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-      polygonOffsetUnits: -4,
-    })
-    this.mesh = new Mesh(new PlaneGeometry(0.275, 0.112), mat)
-    this.mesh.name = 'Cluster'
-    this.mesh.renderOrder = 2
-    this.mesh.castShadow = false
-    this.mesh.receiveShadow = false
+    this.tach = makeFace('ClusterTach')
+    this.speed = makeFace('ClusterSpeed')
     this.place(visual, eye)
     this.paint()
-    this.map.needsUpdate = true
   }
 
   tick(speedMs: number, lightsOn: boolean, dt: number, night = 0): void {
@@ -114,32 +130,49 @@ export class Cluster {
     this.lit = lightsOn
     this.night = night
     this.paint()
-    this.map.needsUpdate = true
   }
 
   private place(visual: Object3D, eye: { x: number; y: number; z: number }): void {
-    const left = findMesh(visual, 'polySurface97_Carro_Plastico_0')
-    const right = findMesh(visual, 'polySurface98_Carro_Plastico_0')
+    const left = findMesh(visual, LEFT_DISC)
+    const right = findMesh(visual, RIGHT_DISC)
+    this.seat(this.tach.mesh, visual, left, eye, -0.087)
+    this.seat(this.speed.mesh, visual, right, eye, 0.087)
     if (left) left.visible = false
     if (right) right.visible = false
-    visual.add(this.mesh)
-    const pos = new Vector3(eye.x, eye.y - 0.322, eye.z + 0.86)
-    const look = new Vector3(eye.x, eye.y, eye.z)
-    const root = visual.parent
-    if (root) {
-      root.localToWorld(pos)
-      root.localToWorld(look)
-      visual.worldToLocal(pos)
+  }
+
+  private seat(
+    face: Mesh,
+    visual: Object3D,
+    disc: MeshType | undefined,
+    eye: { x: number; y: number; z: number },
+    fallbackX: number,
+  ): void {
+    visual.add(face)
+    if (disc) {
+      disc.updateMatrixWorld(true)
+      _box.setFromObject(disc)
+      _box.getSize(_size)
+      _box.getCenter(_center)
+      const radius = Math.max(_size.x, _size.y) * 0.44
+      face.geometry.dispose()
+      face.geometry = new CircleGeometry(radius, 48)
+      visual.worldToLocal(_center)
+      face.position.copy(_center)
+    } else {
+      face.position.set(eye.x + fallbackX, eye.y - 0.314, eye.z + 0.88)
     }
-    this.mesh.position.copy(pos)
-    this.mesh.updateMatrixWorld(true)
-    this.mesh.lookAt(look)
+    _look.set(eye.x, eye.y, eye.z)
+    const root = visual.parent
+    if (root) root.localToWorld(_look)
+    face.updateMatrixWorld(true)
+    face.lookAt(_look)
+    // Sit on the driver-facing lip of the recessed disc, not the mid-thickness.
+    face.translateZ(0.016)
   }
 
   private paint(): void {
-    const ctx = this.ctx
-    ctx.clearRect(0, 0, W, H)
-    this.drawGauge(280, 232, 188, this.shownTach / TACH_MAX, {
+    this.drawGauge(this.tach, this.shownTach / TACH_MAX, {
       max: TACH_MAX,
       step: 10,
       majors: [0, 10, 30, 50, 70],
@@ -147,7 +180,8 @@ export class Cluster {
       caption: 'rpm × 100',
       battery: true,
     })
-    this.drawGauge(744, 232, 188, this.shownKmh / SPEED_MAX, {
+    this.tach.map.needsUpdate = true
+    this.drawGauge(this.speed, this.shownKmh / SPEED_MAX, {
       max: SPEED_MAX,
       step: 20,
       majors: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220],
@@ -156,12 +190,11 @@ export class Cluster {
       lcd: true,
       lights: true,
     })
+    this.speed.map.needsUpdate = true
   }
 
   private drawGauge(
-    cx: number,
-    cy: number,
-    r: number,
+    face: GaugeFace,
     t: number,
     spec: {
       max: number
@@ -174,12 +207,16 @@ export class Cluster {
       battery?: boolean
     },
   ): void {
-    const ctx = this.ctx
+    const ctx = face.ctx
+    const cx = W / 2
+    const cy = W / 2
+    const r = 228
     const lit = this.lit
     const dusk = this.night
     const ink = lit ? RUBY : mixHex(GREY, GREY_NIGHT, dusk)
     const inkSoft = lit ? RUBY_DIM : mixHex('#2a2928', '#121110', dusk)
     const needle = lit ? '#ff4a18' : mixHex(NEEDLE_DIM, NEEDLE_NIGHT, dusk)
+    ctx.clearRect(0, 0, W, W)
     ctx.save()
     ctx.beginPath()
     ctx.arc(cx, cy, r + 8, 0, Math.PI * 2)
@@ -213,7 +250,7 @@ export class Cluster {
       ctx.stroke()
     }
 
-    ctx.font = '600 28px "Segoe UI", system-ui, sans-serif'
+    ctx.font = '600 26px "Segoe UI", system-ui, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     if (lit) {
