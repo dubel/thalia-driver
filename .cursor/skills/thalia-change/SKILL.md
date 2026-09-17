@@ -20,7 +20,7 @@ description: >-
 
 - Keep `ARENA_HALF = 475` (8× Karaluch surface). Roads live on `ROAD_STEP`.
 - Flatten or grade in `terrain.ts`. Streets are a nearly-flat city grid.
-- Orthogonal tiles only: `Cube.001` at joins, `Cube` on spans. Lamps: sidewalk grass, skip crossings.
+- Orthogonal tiles only: `Cube.001` at joins, `Cube` on spans. Lamps: sidewalk grass, skip crossings. Lamps have a thin AABB. Block buildings are untextured instanced boxes inset from the curb, no shadows.
 - Street instances are ~160 m chunks with frustum culling on. Do not set `frustumCulled = false` on the whole lot, and do not `receiveShadow` on sidewalk tiles.
 - After a ground change, drive the rim and the spawn.
 

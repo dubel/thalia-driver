@@ -12,7 +12,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Hull pops on the sidewalk.** `sitOnTerrain` is the Karaluch four-corner **average**, not `max()` of the high wheel (that launches the sedan) and not `min(center, avg)` (that keeps the hull on the asphalt so it clips the lip). The visual curb is sharp; the heightfield is a ~2 m ramp (`sidewalkStep` in `terrain.ts`). Sample at the wheel track (`halfWidth * 0.82`).
 
-**Lamps in the grass / in the asphalt.** Poles follow every grid line, ~5.85 m off the centerline, and stop at the last `ROAD_STEP` line. Skip when `distToGrid(along)` is inside `ROAD_HALF + ~2.4` or the pole sits in the perpendicular carriageway. Do not stride to `ARENA_HALF` — roads end at the last grid line (~±400 m).
+**Lamps in the grass / in the asphalt.** Poles follow every grid line, ~5.85 m off the centerline, and stop at the last `ROAD_STEP` line. Skip when `distToGrid(along)` is inside `ROAD_HALF + ~2.4` or the pole sits in the perpendicular carriageway. Do not stride to `ARENA_HALF` — roads end at the last grid line (~±400 m). Poles now have a ~0.22 m AABB; buildings stay `ROAD_INSET` (14 m) off the centerline so they do not eat the sidewalk.
 
 ## Car
 
@@ -46,7 +46,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **FPS halves and the lot “krzaczy” after a long edit session.** `Game.loop` is a rAF chain. Vite HMR used to mount a second `Game` without cancelling the first, so two loops, two input handlers. `main.ts` must `game.dispose()` on `import.meta.hot.dispose` (cancel rAF, drop window listeners, `renderer.dispose()`). Hard-refresh if a tab has already stacked.
 
-**Whole 950 m street grid drawn every frame.** One `InstancedMesh` per tile part with `frustumCulled = false` never drops off-screen blocks. Chunk poses on a ~160 m grid, `computeBoundingSphere()`, leave culling on. Sidewalk tiles do not `receiveShadow` — PCF on every curb triangle is the fill-rate killer; asphalt + lot ground still take the car shadow.
+**Whole 950 m street grid drawn every frame.** One `InstancedMesh` per tile part with `frustumCulled = false` never drops off-screen blocks. Chunk poses on a ~160 m grid, `computeBoundingSphere()`, leave culling on. Sidewalk tiles do not `receiveShadow` — PCF on every curb triangle is the fill-rate killer; asphalt + lot ground still take the car shadow. Block buildings are one extra instanced box mesh with `castShadow = false`.
 
 **Cockpit canvases stall the chase cam.** Cluster `paint()` uploads two 512² textures. Skip it in chase; in cockpit skip when needles / lights / night did not change. Radio LCD keys on the *shown* string, not raw `hour` (that re-uploaded every frame with a live station).
 

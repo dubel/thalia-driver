@@ -163,6 +163,8 @@ export class Game {
         ARENA_HALF,
         this.arena.atmosphere.wetness,
       )
+      const crash = this.player.consumeCrash()
+      if (crash > 0) void this.audio.unlock().then(() => this.audio.crash(crash))
       this.hud.setSpeed(Math.abs(this.player.speed) * 3.6)
       this.audio.setMotion(Math.abs(this.player.speed) / this.player.config.maxSpeed, this.radio.playing)
     } else {

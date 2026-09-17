@@ -73,7 +73,7 @@ export function addStreetCity(
   scene: Scene,
   pack: Object3D,
   lampRoot: Object3D,
-  _obstacles: Aabb[],
+  obstacles: Aabb[],
 ): StreetWorld {
   stripJunk(pack)
   stripJunk(lampRoot)
@@ -134,6 +134,16 @@ export function addStreetCity(
 
   const lamp = bakeLamp(lampRoot)
   const lampPoses = layoutLamps(lines)
+  for (const p of lampPoses) {
+    obstacles.push({
+      minX: p.x - 0.22,
+      maxX: p.x + 0.22,
+      minZ: p.z - 0.22,
+      maxZ: p.z + 0.22,
+      minY: 0,
+      maxY: 6.4,
+    })
+  }
   const lampMats: MeshStandardMaterial[] = []
   for (const part of lamp.parts) {
     if (!lampPoses.length) break
@@ -219,7 +229,7 @@ function uniqueTiles(tiles: Map<string, Tile>): Tile[] {
   return out
 }
 
-function gridLines(): number[] {
+export function gridLines(): number[] {
   const lines: number[] = []
   const start = -Math.floor(ARENA_HALF / ROAD_STEP) * ROAD_STEP
   for (let v = start; v <= ARENA_HALF + 0.01; v += ROAD_STEP) lines.push(v)

@@ -25,13 +25,14 @@ This project inherits coordinate, rig, and loop rules that worked in **Karaluch*
 | `src/game/Arena.ts` | lot, atmosphere lights, curb, street grid |
 | `src/game/atmosphere.ts` | day cycle, weather, rain, storm |
 | `src/game/streets.ts` | orthogonal pack tiles, asphalt fill, sidewalk lamps |
+| `src/game/buildings.ts` | instanced block boxes + AABBs (no shadows) |
 | `src/game/terrain.ts` | nearly-flat city bed, road deck, sidewalk ramp |
 | `src/game/rig.ts` | `normalizeModel`, wheel pivots, cabin trim, lights, steering wheel |
 | `src/game/Car.ts` | arcade hull physics, sit-on-terrain, headlights |
 | `src/game/cluster.ts` | procedural Clio/Thalia gauges (tacho + speedo, ruby backlight) |
 | `src/game/camera.ts` | chase follow + cockpit look (`F` hold) |
 | `src/game/input.ts` | WASD, mouse yaw, space, V, F, L, Shift, R, Alt+R radio |
-| `src/game/audio.ts` | diesel, horn, rain / thunder / birds |
+| `src/game/audio.ts` | diesel, horn, crash thud, rain / thunder / birds |
 | `src/game/radio.ts` | live station streams, head-unit LCD |
 | `src/game/mirrors.ts` | cockpit wing + interior mirrors (one 256×128 pass / frame) |
 | `src/ui/hud.ts` | overlay + speedo + radio modal + optional FPS |

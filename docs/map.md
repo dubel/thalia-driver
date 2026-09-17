@@ -25,6 +25,6 @@ Orthogonal city grid, centerlines every **80 m** (`ROAD_STEP`). Only axis-aligne
 - **`Cube`** between crossings, NS and EW (yaw 0 / 90°) — two parallel sidewalks, same 10.06 m width.
 - Carriageway uses the pack’s glossy `Materiais.*` asphalt (cracked dark grey), not the sidewalk concrete.
 
-Street lamps (`assets/street_lamp.glb`) sit on the grass just outside every sidewalk (~5.85 m off the centerline), every 32 m, skipped at crossings so poles never land in the perpendicular carriageway or past the last grid line. At dusk they go emissive; two cheap point lights hop to the nearest poles. Tile / asphalt / lamp instances are stamped in ~160 m chunks so the camera frustum can drop the far side of the lot.
+Street lamps (`assets/street_lamp.glb`) sit on the grass just outside every sidewalk (~5.85 m off the centerline), every 32 m, skipped at crossings so poles never land in the perpendicular carriageway or past the last grid line. At dusk they go emissive; two cheap point lights hop to the nearest poles. Tile / lamp / asphalt instances are stamped in ~160 m chunks so the camera frustum can drop the far side of the lot. Poles have a thin AABB so the car stops on them. City blocks hold a few dozen untextured `InstancedMesh` boxes (no shadows) inset from the curb.
 
 A low curb still marks the rim; driving past it is blocked.

@@ -17,6 +17,7 @@ import { AabbIndex, type Aabb } from './collision'
 import { ARENA_HALF } from './config'
 import { Atmosphere, type WindClock } from './atmosphere'
 import { addStreetCity } from './streets'
+import { addBlockBuildings } from './buildings'
 import { displaceTerrain, terrainHeight } from './terrain'
 
 const _dummy = new Object3D()
@@ -59,6 +60,7 @@ export class Arena {
   addStreets(pack: Object3D, lamps: Object3D): void {
     this.streets = addStreetCity(this.scene, pack, lamps, this.obstacles)
     this.streetMats = this.streets.materials
+    addBlockBuildings(this.scene, this.obstacles, this.cameraBlockers)
   }
 
   indexCollision(): void {

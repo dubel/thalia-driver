@@ -10,6 +10,8 @@ const BIRD_AAC = new URL('../../assets/sfx/bird_robin.m4a', import.meta.url).hre
 const DIESEL_URL = new URL('../../assets/sfx/diesel_loop.mp3', import.meta.url).href
 /** Denis Chardonnet / BigSoundBank, CC0. */
 const HORN_URL = new URL('../../assets/sfx/car_horn.mp3', import.meta.url).href
+/** Mixkit “Factory metal hard hit” — Mixkit License, dull lamp/building thud. */
+const CRASH_URL = new URL('../../assets/sfx/car_crash.mp3', import.meta.url).href
 
 const SILENT_WAV =
   'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
@@ -109,6 +111,7 @@ export class GameAudio {
       ['bird', pick(BIRD_OGG, BIRD_AAC)],
       ['engine', DIESEL_URL],
       ['horn', HORN_URL],
+      ['crash', CRASH_URL],
     ]
     await Promise.all(
       jobs.map(async ([name, url]) => {
@@ -164,6 +167,7 @@ export class GameAudio {
     )
     if (!this.decoded.has('engine')) this.decoded.set('engine', makeDieselBuffer(ctx))
     if (!this.decoded.has('thunderNear')) this.decoded.set('thunderNear', makeThunderCrackBuffer(ctx))
+    if (!this.decoded.has('crash')) this.decoded.set('crash', makeCrashBuffer(ctx))
     if (!this.engineSrc) this.startEngine()
     if (!this.rainGain) this.startWeatherPads()
     this.ready = true
@@ -184,6 +188,11 @@ export class GameAudio {
 
   horn(): void {
     this.play('horn', 0.78, 0.98 + Math.random() * 0.04)
+  }
+
+  crash(strength: number): void {
+    const t = Math.max(0.35, Math.min(1, strength / 18))
+    this.play('crash', 0.42 + t * 0.5, 0.86 + Math.random() * 0.12)
   }
 
   setWeather(rain: number, wind: number): void {
@@ -327,6 +336,22 @@ function makeDieselBuffer(ctx: AudioContext): AudioBuffer {
     const knock = Math.sin(2 * Math.PI * 27 * t) * 0.38 + Math.sin(2 * Math.PI * 54 * t) * 0.16
     const clatter = Math.sin(2 * Math.PI * 81 * t) * 0.1
     data[i] = brown * 0.62 + knock * 0.48 + clatter
+  }
+  return buf
+}
+
+function makeCrashBuffer(ctx: AudioContext): AudioBuffer {
+  const sr = ctx.sampleRate
+  const n = Math.floor(sr * 0.55)
+  const buf = ctx.createBuffer(1, n, sr)
+  const data = buf.getChannelData(0)
+  let brown = 0
+  for (let i = 0; i < n; i++) {
+    const t = i / sr
+    const hit = Math.min(1, t / 0.008) * Math.exp(-t * 14)
+    brown = clampAudio(brown + (Math.random() * 2 - 1) * 0.05, -0.5, 0.5)
+    const boom = Math.sin(2 * Math.PI * (42 + t * 28) * t) * Math.exp(-t * 7) * 0.55
+    data[i] = (Math.random() * 2 - 1) * hit * 0.35 + brown * hit * 0.7 + boom
   }
   return buf
 }

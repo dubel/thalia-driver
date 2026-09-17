@@ -106,6 +106,8 @@ export class Car {
   private terrainPitch = 0
   private terrainRoll = 0
   private gForceRoll = 0
+  private crashCd = 0
+  private crashImpulse = 0
 
   constructor(model: Object3D, config: CarConfig, spawn: Vector3, spawnYaw: number) {
     this.config = config
@@ -147,6 +149,8 @@ export class Car {
     this.vz = 0
     this.steerAngle = 0
     this.gForceRoll = 0
+    this.crashCd = 0
+    this.crashImpulse = 0
     this.object.position.copy(this.spawn)
     this.hullYaw = this.spawnYaw
     for (const wheel of this.wheels) {
@@ -226,6 +230,8 @@ export class Car {
     this.vx = poseSin * forward + poseCos * lateral
     this.vz = poseCos * forward - poseSin * lateral
 
+    const incoming = Math.hypot(this.vx, this.vz)
+    if (this.crashCd > 0) this.crashCd -= dt
     const nextX = this.object.position.x + this.vx * dt
     const nextZ = this.object.position.z + this.vz * dt
     const tryPos = (x: number, z: number): boolean =>
@@ -236,6 +242,10 @@ export class Car {
       this.object.position.x = bounded.x
       this.object.position.z = bounded.z
     } else {
+      if (incoming > 2.4 && this.crashCd <= 0) {
+        this.crashImpulse = incoming
+        this.crashCd = 0.45
+      }
       const onlyX = clampToBounds(
         bounded.x,
         this.object.position.z,
@@ -269,6 +279,12 @@ export class Car {
     this.gForceRoll += (leanTarget - this.gForceRoll) * (1 - Math.exp(-5 * dt))
     this.sitOnTerrain(dt)
     this.spinWheels(dt)
+  }
+
+  consumeCrash(): number {
+    const v = this.crashImpulse
+    this.crashImpulse = 0
+    return v
   }
 
   nudgeYaw(delta: number): void {
