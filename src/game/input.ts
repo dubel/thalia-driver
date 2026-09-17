@@ -154,4 +154,11 @@ export class Input {
   private onLockChange = (): void => {
     this.pointerLocked = document.pointerLockElement === this.canvas
   }
+
+  dispose(): void {
+    window.removeEventListener('keydown', this.onKeyDown)
+    window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('mousemove', this.onMouseMove)
+    document.removeEventListener('pointerlockchange', this.onLockChange)
+  }
 }

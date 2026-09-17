@@ -31,6 +31,8 @@ export class Game {
   private readonly audio = new GameAudio()
   private readonly radio = new RadioPlayer()
   private playing = false
+  private alive = true
+  private raf = 0
   private fpsFrames = 0
   private fpsAcc = 0
 
@@ -44,11 +46,8 @@ export class Game {
     this.scene.environmentIntensity = 0.85
     pmrem.dispose()
     this.resize()
-    window.addEventListener('resize', () => this.resize())
-    canvas.addEventListener('click', () => {
-      if (this.hud.isRadioOpen()) return
-      if (this.playing && !this.input.pointerLocked) this.input.lockPointer()
-    })
+    window.addEventListener('resize', this.onResize)
+    canvas.addEventListener('click', this.onCanvasClick)
     this.hud.onPlay(() => this.beginPlay())
     this.hud.onRadioPick((id) => void this.tuneRadio(id))
     this.hud.onRadioClosed(() => {
@@ -94,6 +93,15 @@ export class Game {
     this.loop()
   }
 
+  dispose(): void {
+    this.alive = false
+    cancelAnimationFrame(this.raf)
+    window.removeEventListener('resize', this.onResize)
+    this.renderer.domElement.removeEventListener('click', this.onCanvasClick)
+    this.input.dispose()
+    this.renderer.dispose()
+  }
+
   private beginPlay(): void {
     this.playing = true
     this.hud.hideOverlay()
@@ -104,7 +112,8 @@ export class Game {
   }
 
   private loop = (): void => {
-    requestAnimationFrame(this.loop)
+    if (!this.alive) return
+    this.raf = requestAnimationFrame(this.loop)
     const raw = this.clock.getDelta()
     const dt = Math.min(raw, 0.08)
     this.update(dt)
@@ -157,7 +166,13 @@ export class Game {
       const night = this.arena.atmosphere.night
       const day = 1 - night
       this.player.syncLights(night)
-      this.player.cluster.tick(this.player.speed, this.player.lightsOn, dt, night)
+      this.player.cluster.tick(
+        this.player.speed,
+        this.player.lightsOn,
+        dt,
+        night,
+        this.cameraRig.mode === 'cockpit',
+      )
       this.player.radioLcd.tick(this.arena.atmosphere.clockHour, this.radio.lcdLabel(), dt)
       this.scene.environmentIntensity = 0.04 + 0.82 * day ** 1.55
       this.renderer.toneMappingExposure = 0.36 + 0.66 * day
@@ -171,6 +186,7 @@ export class Game {
   }
 
   private tickFps(rawDt: number): void {
+    if (rawDt > 0.4) return
     this.fpsFrames += 1
     this.fpsAcc += rawDt
     if (this.fpsAcc < 0.25) return
@@ -179,9 +195,17 @@ export class Game {
     this.fpsAcc = 0
   }
 
+  private readonly onResize = (): void => this.resize()
+
+  private readonly onCanvasClick = (): void => {
+    if (this.hud.isRadioOpen()) return
+    if (this.playing && !this.input.pointerLocked) this.input.lockPointer()
+  }
+
   private resize(): void {
     const width = window.innerWidth
     const height = window.innerHeight
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25))
     this.renderer.setSize(width, height, false)
     this.cameraRig.resize(width, height)
   }

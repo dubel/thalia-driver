@@ -40,6 +40,16 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Radio LCD crooked / upside-down on the DIN.** After `translateX` onto the center stack, do not `lookAt` the driver — that yaws the quad toward the seat. Keep the slide, set the plane to the fascia, then `rotateZ(π)` so the ruby clock is upright. Nudge right/down into the window. `polySurface80` is the column shroud.
 
+## Performance
+
+**FPS halves and the lot “krzaczy” after a long edit session.** `Game.loop` is a rAF chain. Vite HMR used to mount a second `Game` without cancelling the first, so two loops, two input handlers. `main.ts` must `game.dispose()` on `import.meta.hot.dispose` (cancel rAF, drop window listeners, `renderer.dispose()`). Hard-refresh if a tab has already stacked.
+
+**Whole 950 m street grid drawn every frame.** One `InstancedMesh` per tile part with `frustumCulled = false` never drops off-screen blocks. Chunk poses on a ~160 m grid, `computeBoundingSphere()`, leave culling on. Sidewalk tiles do not `receiveShadow` — PCF on every curb triangle is the fill-rate killer; asphalt + lot ground still take the car shadow.
+
+**Cockpit canvases stall the chase cam.** Cluster `paint()` uploads two 512² textures. Skip it in chase; in cockpit skip when needles / lights / night did not change. Radio LCD keys on the *shown* string, not raw `hour` (that re-uploaded every frame with a live station).
+
+**Shadow map realloc hitch at dusk.** Do not assign `sun.castShadow = intensity > 0.1` every tick. Hysteresis: on above 0.14, off below 0.06.
+
 ## Process
 
 - Do not commit without being asked.

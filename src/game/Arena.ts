@@ -143,7 +143,7 @@ export function configureRenderer(renderer: import('three').WebGLRenderer): void
   renderer.toneMappingExposure = 1.02
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25))
 }
 
 function makeLotMaterial(): MeshStandardMaterial {

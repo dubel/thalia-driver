@@ -14,3 +14,7 @@ game.start().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)
   hud.setStatus(`Failed to load: ${message}`)
 })
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => game.dispose())
+}

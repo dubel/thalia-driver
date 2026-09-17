@@ -106,6 +106,7 @@ export class Cluster {
   private tripKm = 0
   private lit = false
   private night = 0
+  private lastPaint = ''
 
   constructor(visual: Object3D, eye: { x: number; y: number; z: number }) {
     this.tach = makeFace('ClusterTach')
@@ -114,7 +115,7 @@ export class Cluster {
     this.paint()
   }
 
-  tick(speedMs: number, lightsOn: boolean, dt: number, night = 0): void {
+  tick(speedMs: number, lightsOn: boolean, dt: number, night = 0, cockpit = false): void {
     const kmh = Math.abs(speedMs) * 3.6
     const rpm = IDLE_RPM + kmh * 38
     const tach = rpm / 100
@@ -126,6 +127,13 @@ export class Cluster {
     this.odoKm += (kmh * dt) / 3600
     this.lit = lightsOn
     this.night = night
+    if (!cockpit) {
+      this.lastPaint = ''
+      return
+    }
+    const key = `${this.shownKmh.toFixed(1)}|${this.shownTach.toFixed(1)}|${this.lit ? 1 : 0}|${this.night.toFixed(2)}|${this.odoKm.toFixed(1)}`
+    if (key === this.lastPaint) return
+    this.lastPaint = key
     this.paint()
   }
 

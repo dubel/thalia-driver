@@ -32,6 +32,8 @@ const TILE_NAMES = new Set([
 ])
 
 const LAMP_STEP = 32
+/** Split the 950 m grid so frustum culling can drop off-screen tiles. */
+const STREET_CHUNK = 160
 /** Outer sidewalk of Cube is ~5.03 m; sit on the grass just off the curb. */
 const LAMP_SIDE = 5.85
 const LAMP_CROSS_CLEAR = ROAD_HALF + 2.4
@@ -123,13 +125,9 @@ export function addStreetCity(
     const poses = byName.get(tile.name)
     if (!poses?.length) continue
     for (const part of tile.parts) {
-      const mesh = new InstancedMesh(part.geo, part.material, poses.length)
-      mesh.receiveShadow = true
-      mesh.castShadow = false
-      mesh.frustumCulled = false
-      mesh.name = `Street:${tile.name}`
-      stampPoses(mesh, poses, 'tile', 1)
-      scene.add(mesh)
+      addInstanced(scene, part.geo, part.material, poses, `Street:${tile.name}`, 'tile', {
+        receiveShadow: false,
+      })
       materials.push(part.material)
     }
   }
@@ -139,13 +137,10 @@ export function addStreetCity(
   const lampMats: MeshStandardMaterial[] = []
   for (const part of lamp.parts) {
     if (!lampPoses.length) break
-    const mesh = new InstancedMesh(part.geo, part.material, lampPoses.length)
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-    mesh.frustumCulled = false
-    mesh.name = 'StreetLamp'
-    stampPoses(mesh, lampPoses, 'lamp', lamp.scale)
-    scene.add(mesh)
+    addInstanced(scene, part.geo, part.material, lampPoses, 'StreetLamp', 'lamp', {
+      receiveShadow: false,
+      lampScale: lamp.scale,
+    })
     lampMats.push(part.material)
   }
   _dummy.scale.set(1, 1, 1)
@@ -312,14 +307,43 @@ function addAsphalt(
     mat.map.repeat.set(1, 1)
     mat.map.needsUpdate = true
   }
-  const mesh = new InstancedMesh(geo, mat, poses.length)
-  mesh.receiveShadow = true
-  mesh.castShadow = false
-  mesh.frustumCulled = false
-  mesh.name = 'Street:asphalt'
-  stampPoses(mesh, poses, 'asphalt', 1)
-  scene.add(mesh)
+  addInstanced(scene, geo, mat, poses, 'Street:asphalt', 'asphalt', { receiveShadow: true })
   return mat
+}
+
+function chunkKey(x: number, z: number): string {
+  return `${Math.floor(x / STREET_CHUNK)}:${Math.floor(z / STREET_CHUNK)}`
+}
+
+function addInstanced(
+  scene: Scene,
+  geo: BufferGeometry,
+  mat: MeshStandardMaterial,
+  poses: Pose[],
+  name: string,
+  kind: 'tile' | 'asphalt' | 'lamp',
+  opts: { receiveShadow: boolean; lampScale?: number },
+): void {
+  if (!poses.length) return
+  geo.computeBoundingBox()
+  geo.computeBoundingSphere()
+  const buckets = new Map<string, Pose[]>()
+  for (const pose of poses) {
+    const key = chunkKey(pose.x, pose.z)
+    const list = buckets.get(key)
+    if (list) list.push(pose)
+    else buckets.set(key, [pose])
+  }
+  for (const [key, list] of buckets) {
+    const mesh = new InstancedMesh(geo, mat, list.length)
+    mesh.receiveShadow = opts.receiveShadow
+    mesh.castShadow = false
+    mesh.frustumCulled = true
+    mesh.name = `${name}:${key}`
+    stampPoses(mesh, list, kind, opts.lampScale ?? 1)
+    mesh.computeBoundingSphere()
+    scene.add(mesh)
+  }
 }
 
 function stampPoses(
@@ -384,9 +408,26 @@ function nearestLamps(
   fz: number,
   n: number,
 ): { x: number; z: number; y: number }[] {
-  const scored = lamps.map((p) => ({ p, d: (p.x - fx) ** 2 + (p.z - fz) ** 2 }))
-  scored.sort((a, b) => a.d - b.d)
-  return scored.slice(0, n).map((s) => s.p)
+  let first: { x: number; z: number; y: number } | undefined
+  let second: { x: number; z: number; y: number } | undefined
+  let firstD = Infinity
+  let secondD = Infinity
+  for (const lamp of lamps) {
+    const d = (lamp.x - fx) ** 2 + (lamp.z - fz) ** 2
+    if (d < firstD) {
+      second = first
+      secondD = firstD
+      first = lamp
+      firstD = d
+    } else if (d < secondD) {
+      second = lamp
+      secondD = d
+    }
+  }
+  const out: { x: number; z: number; y: number }[] = []
+  if (first) out.push(first)
+  if (n > 1 && second) out.push(second)
+  return out
 }
 
 function gatherTiles(root: Object3D): Map<string, Tile> {

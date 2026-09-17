@@ -254,11 +254,11 @@ export class RadioLcd {
   tick(hour: number, label: string, dt: number): void {
     this.blink += dt
     const colon = Math.floor(this.blink * 2) % 2 === 0
-    const key = `${label}|${hour.toFixed(3)}|${colon ? 1 : 0}`
+    const text = label || formatClock(hour, colon)
+    const key = `${label ? 's' : 'c'}|${text}`
     if (key === this.lastKey) return
     this.lastKey = key
-    if (label) this.paint(label, false)
-    else this.paint(formatClock(hour, colon), true)
+    this.paint(text, !label)
     this.map.needsUpdate = true
   }
 

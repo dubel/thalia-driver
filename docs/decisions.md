@@ -24,7 +24,7 @@ City, traffic, and cop chases come after the Thalia drives well on a blank lot. 
 
 ## Orthogonal grid only
 
-The old-street pack has curves (`Cube.002`). We do not use them. Crossings are `Cube.001` (four square corners), straights are `Cube`. Carriageway fill is the pack’s glossy `Materiais.*`, not sidewalk `Material`.
+The old-street pack has curves (`Cube.002`). We do not use them. Crossings are `Cube.001` (four square corners), straights are `Cube`. Carriageway fill is the pack’s glossy `Materiais.*`, not sidewalk `Material`. Street `InstancedMesh`es are split into ~160 m chunks so the frustum can drop the far half of the lot. Pixel ratio caps at 1.25; Vite HMR disposes the previous `Game` loop so we do not stack rAF.
 
 ## Heightfield curb, not a physics engine
 

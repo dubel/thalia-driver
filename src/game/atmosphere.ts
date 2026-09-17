@@ -330,7 +330,8 @@ export class Atmosphere {
 
     this.sun.color.copy(_sunCol)
     this.sun.intensity = sunLit * 1.48 + this.flash * 1.8
-    this.sun.castShadow = this.sun.intensity > 0.1
+    if (this.sun.intensity > 0.14) this.sun.castShadow = true
+    else if (this.sun.intensity < 0.06) this.sun.castShadow = false
     this.moon.color.copy(_moonCol)
     this.moon.intensity = (moonLit * 0.55 + night * 0.06) * (1 - this.mist * 0.35)
     this.hemi.color.copy(_hemiSky)
