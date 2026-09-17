@@ -31,7 +31,7 @@ const _look = new Vector3()
 const INNER_HULL = { x: 0, y: 1.26, z: 0.522 }
 /** Cabin-facing face of the Mesh86 / Mesh49 oval — not the outboard bulb center. */
 const LEFT_HULL = { x: -0.935, y: 0.952, z: 0.728 }
-const RIGHT_HULL = { x: 0.935, y: 0.952, z: 0.728 }
+const RIGHT_HULL = { x: 0.948, y: 0.952, z: 0.728 }
 
 type PadKind = 'left' | 'right' | 'inner'
 
@@ -128,9 +128,9 @@ export class MirrorRig {
     this.hull = visual.parent ?? visual
     const chrome = findMesh(visual, 'Mesh12_CHROME_0')
     if (chrome) chrome.visible = false
-    this.addPad(visual, eye, 'inner', INNER_HULL, 0.222, 0.05, 48)
-    this.addPad(visual, eye, 'left', LEFT_HULL, 0.152, 0.08, 62)
-    this.addPad(visual, eye, 'right', RIGHT_HULL, 0.152, 0.08, 62)
+    this.addPad(visual, eye, 'inner', INNER_HULL, 0.228, 0.05, 48)
+    this.addPad(visual, eye, 'left', LEFT_HULL, 0.152, 0.1, 62)
+    this.addPad(visual, eye, 'right', RIGHT_HULL, 0.152, 0.1, 62)
   }
 
   setCockpit(on: boolean): void {
@@ -204,9 +204,12 @@ export class MirrorRig {
     mesh.position.copy(_center)
     mesh.updateMatrixWorld(true)
     mesh.lookAt(_look)
-    if (kind === 'inner') mesh.translateX(0.01)
+    if (kind === 'inner') mesh.translateX(0.004)
     if (kind === 'left') mesh.rotateZ(0.12)
-    if (kind === 'right') mesh.rotateZ(-0.12)
+    if (kind === 'right') {
+      mesh.rotateZ(-0.12)
+      mesh.translateX(0.01)
+    }
     this.pads.push({ kind, mesh, camera, target, fov })
   }
 }
