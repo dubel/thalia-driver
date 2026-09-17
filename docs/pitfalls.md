@@ -38,7 +38,7 @@ Taken from Karaluch regressions that still apply here, plus car-specific ones.
 
 **Alt+R vs R.** `R` alone resets. `event.altKey` on `KeyR` opens the radio modal and must not set `restart`. Unlock the pointer for the modal; do not re-lock on canvas clicks while it is open.
 
-**Radio LCD covers the head unit.** Seat the canvas on `polySurface80` (front lip, toward the driver), not a slab over the whole dash. Clock when OFF, station name when live.
+**Radio LCD covers the head unit / shows nothing.** Same as the gauges: place from the cockpit eye (`lookAt` the driver), not `polySurface80` AABB (that buries the canvas). Clock when OFF, station name when live, **ruby** ink.
 
 ## Process
 

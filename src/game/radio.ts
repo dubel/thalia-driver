@@ -1,5 +1,4 @@
 import {
-  Box3,
   CanvasTexture,
   DoubleSide,
   LinearFilter,
@@ -9,17 +8,14 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
   Vector3,
-  type Mesh as MeshType,
 } from 'three'
 import type HlsType from 'hls.js'
 
 const LCD_W = 512
 const LCD_H = 128
-const RADIO_HOUSING = 'polySurface80_Carro_Plastico_0'
+const RUBY = '#f06a28'
+const RUBY_GLOW = 'rgba(240, 90, 28, 0.7)'
 
-const _box = new Box3()
-const _size = new Vector3()
-const _center = new Vector3()
 const _look = new Vector3()
 
 export type RadioStationId = 'off' | 'eska-rock' | 'antyradio' | 'tok-fm' | 'trojka' | 'rmf-fm' | 'zet'
@@ -213,15 +209,6 @@ export class RadioPlayer {
   }
 }
 
-function findMesh(root: Object3D, name: string): MeshType | undefined {
-  let found: MeshType | undefined
-  root.traverse((child) => {
-    const mesh = child as MeshType
-    if (mesh.isMesh && mesh.name === name) found = mesh
-  })
-  return found
-}
-
 export class RadioLcd {
   readonly mesh: Mesh
   private readonly canvas: HTMLCanvasElement
@@ -249,16 +236,16 @@ export class RadioLcd {
       depthWrite: true,
       side: DoubleSide,
       polygonOffset: true,
-      polygonOffsetFactor: -3,
-      polygonOffsetUnits: -3,
+      polygonOffsetFactor: -6,
+      polygonOffsetUnits: -6,
     })
-    this.mesh = new Mesh(new PlaneGeometry(0.122, 0.03), mat)
+    this.mesh = new Mesh(new PlaneGeometry(0.108, 0.026), mat)
     this.mesh.name = 'RadioLcd'
-    this.mesh.renderOrder = 2
+    this.mesh.renderOrder = 3
     this.mesh.castShadow = false
     this.mesh.receiveShadow = false
     this.place(visual, eye)
-    this.paint('12:00', false)
+    this.paint('12:00', true)
   }
 
   tick(hour: number, label: string, dt: number): void {
@@ -274,44 +261,37 @@ export class RadioLcd {
 
   private place(visual: Object3D, eye: { x: number; y: number; z: number }): void {
     visual.add(this.mesh)
-    const housing = findMesh(visual, RADIO_HOUSING)
-    if (housing) {
-      housing.updateMatrixWorld(true)
-      _box.setFromObject(housing)
-      _box.getSize(_size)
-      _box.getCenter(_center)
-      _center.y += _size.y * 0.28
-      _center.z -= _size.z * 0.48
-      visual.worldToLocal(_center)
-      this.mesh.position.copy(_center)
-    } else {
-      this.mesh.position.set(eye.x - 0.004, eye.y - 0.33, eye.z + 0.64)
-    }
+    const pos = new Vector3(eye.x, eye.y - 0.382, eye.z + 0.655)
     _look.set(eye.x, eye.y, eye.z)
     const root = visual.parent
-    if (root) root.localToWorld(_look)
+    if (root) {
+      root.localToWorld(pos)
+      root.localToWorld(_look)
+      visual.worldToLocal(pos)
+    }
+    this.mesh.position.copy(pos)
     this.mesh.updateMatrixWorld(true)
     this.mesh.lookAt(_look)
-    this.mesh.translateZ(0.012)
+    this.mesh.translateY(0.036)
   }
 
   private paint(text: string, clock: boolean): void {
     const ctx = this.ctx
-    ctx.fillStyle = '#07140a'
+    ctx.fillStyle = '#120c09'
     ctx.fillRect(0, 0, LCD_W, LCD_H)
     const glow = ctx.createLinearGradient(0, 0, 0, LCD_H)
-    glow.addColorStop(0, 'rgba(40, 90, 48, 0.35)')
-    glow.addColorStop(1, 'rgba(8, 22, 12, 0)')
+    glow.addColorStop(0, 'rgba(240, 90, 28, 0.22)')
+    glow.addColorStop(1, 'rgba(18, 8, 6, 0)')
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, LCD_W, LCD_H)
-    ctx.fillStyle = '#6ef56a'
-    ctx.shadowColor = 'rgba(90, 255, 110, 0.65)'
-    ctx.shadowBlur = 12
+    ctx.fillStyle = RUBY
+    ctx.shadowColor = RUBY_GLOW
+    ctx.shadowBlur = 14
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.font = clock
       ? '700 72px ui-monospace, "Cascadia Mono", monospace'
-      : '700 56px ui-monospace, "Cascadia Mono", monospace'
+      : '700 54px ui-monospace, "Cascadia Mono", monospace'
     ctx.fillText(text, LCD_W / 2, LCD_H / 2 + 4)
     ctx.shadowBlur = 0
   }
